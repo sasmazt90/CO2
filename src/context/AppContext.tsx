@@ -11,9 +11,11 @@ import {
   ChallengeDefinition,
   FriendScore,
   LiveSignalState,
+  NotificationItem,
   PermissionState,
 } from '../engine/types';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
+import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 
 interface AppContextValue {
   ready: boolean;
@@ -23,6 +25,8 @@ interface AppContextValue {
   todayBreakdown: CarbonScoreBreakdown;
   todayMetrics: typeof todayMetrics;
   liveSignalState: LiveSignalState;
+  notificationFeed: NotificationItem[];
+  notificationsEnabled: boolean;
   weeklyAverageScore: number;
   carbonPoints: number;
   streakDays: number;
@@ -34,6 +38,7 @@ interface AppContextValue {
   toggleChallenge: (challengeId: string) => void;
   syncLiveSignals: () => Promise<void>;
   updateTodayMetricPatch: (patch: Partial<typeof todayMetrics>) => void;
+  markNotificationRead: (notificationId: string) => void;
 }
 
 const STORAGE_KEY = 'digital-carbon-footprint-score/app-state';
@@ -61,6 +66,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     notes: ['Live signals have not been synced yet.'],
   });
   const [currentTodayMetrics, setCurrentTodayMetrics] = useState(todayMetrics);
+  const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const loadState = async () => {
@@ -111,6 +118,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const { metricPatch, signalState } = await collectDeviceSignalPatch(nextPermissions);
     setCurrentTodayMetrics((current) => ({ ...current, ...metricPatch }));
     setLiveSignalState(signalState);
+    if (nextPermissions.notifications) {
+      setNotificationsEnabled(true);
+    }
   };
 
   const toggleChallenge = (challengeId: string) => {
@@ -146,10 +156,31 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentTodayMetrics((current) => ({ ...current, ...patch }));
   };
 
+  const markNotificationRead = (notificationId: string) => {
+    setNotificationFeed((current) =>
+      current.map((item) =>
+        item.id === notificationId ? { ...item, read: true } : item,
+      ),
+    );
+  };
+
   const todayBreakdown = useMemo(
     () => evaluateCarbonScore(currentTodayMetrics),
     [currentTodayMetrics],
   );
+
+  useEffect(() => {
+    const nextFeed = buildNotificationFeed(todayBreakdown, notificationFeed);
+    setNotificationFeed((current) => buildNotificationFeed(todayBreakdown, current));
+
+    if (permissions.notifications) {
+      void syncLocalNotifications(nextFeed).then((enabled) => {
+        setNotificationsEnabled(enabled);
+      });
+    } else {
+      setNotificationsEnabled(false);
+    }
+  }, [permissions.notifications, todayBreakdown]);
 
   const weeklyAverageScore = useMemo(
     () =>
@@ -194,6 +225,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       todayBreakdown,
       todayMetrics: currentTodayMetrics,
       liveSignalState,
+      notificationFeed,
+      notificationsEnabled,
       weeklyAverageScore,
       carbonPoints,
       streakDays,
@@ -205,6 +238,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       toggleChallenge,
       syncLiveSignals,
       updateTodayMetricPatch,
+      markNotificationRead,
     }),
     [
       badges,
@@ -213,6 +247,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       hasCompletedOnboarding,
       joinedChallenges,
       liveSignalState,
+      notificationFeed,
+      notificationsEnabled,
       permissions,
       ready,
       streakDays,

@@ -21,6 +21,7 @@ import { HomeScreen } from '../screens/HomeScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
 import { MethodScreen } from '../screens/MethodScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { SignalLabScreen } from '../screens/SignalLabScreen';
 import { MainTabParamList, RootStackParamList } from './types';
@@ -107,6 +108,11 @@ export const AppNavigator = () => {
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
           <Stack.Screen name="SignalLab" component={SignalLabScreen} options={{ title: 'Signal Lab' }} />
+          <Stack.Screen
+            name="NotificationCenter"
+            component={NotificationCenterScreen}
+            options={{ title: 'Notification Center' }}
+          />
         </Stack.Navigator>
       ) : (
         <OnboardingScreen />

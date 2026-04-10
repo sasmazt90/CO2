@@ -29,7 +29,14 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "color": "#89D2C6",
+          "defaultChannel": "carbon-coach"
+        }
+      ]
     ]
   }
 }

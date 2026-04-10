@@ -23,6 +23,7 @@ export const HomeScreen = () => {
     carbonPoints,
     streakDays,
     liveSignalState,
+    notificationFeed,
     syncLiveSignals,
   } = useAppContext();
   const trendData = breakdownHistory.map((item) => ({
@@ -50,6 +51,22 @@ export const HomeScreen = () => {
             {liveSignalState.status === 'syncing' ? 'Syncing...' : 'Sync now'}
           </Text>
         </Pressable>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle
+          title="Today&apos;s notification queue"
+          subtitle={`${notificationFeed.filter((item) => !item.read).length} unread rule updates`}
+          action={
+            <Pressable onPress={() => navigation.navigate('NotificationCenter')}>
+              <Text style={styles.link}>Open</Text>
+            </Pressable>
+          }
+        />
+        <Text style={styles.signalCopy}>
+          {notificationFeed[0]?.body ??
+            'Triggered rules will appear here with calm guidance and scientific attribution.'}
+        </Text>
       </SurfaceCard>
 
       <SurfaceCard>

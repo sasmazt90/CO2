@@ -140,6 +140,19 @@ export interface LiveSignalState {
   locationEnabled?: boolean;
 }
 
+export interface NotificationItem {
+  id: string;
+  ruleId: string;
+  title: string;
+  body: string;
+  recommendation: string;
+  source: string;
+  createdAt: string;
+  category: string;
+  read: boolean;
+  kind: 'positive' | 'improvement';
+}
+
 export interface ChallengeDefinition {
   id: string;
   title: string;

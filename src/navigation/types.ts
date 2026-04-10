@@ -4,6 +4,7 @@ export type RootStackParamList = {
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;
+  NotificationCenter: undefined;
 };
 
 export type MainTabParamList = {
