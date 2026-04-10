@@ -9,6 +9,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - Deterministic rule engine with all 50 requested categories
 - 66 total positive/negative outcome rules
 - Daily score dashboard, insights, history, challenges, badges, friends, scientific method, and settings screens
+- Live signal sync for available device readings plus a Signal Lab calibration screen
 - Tooltip info system with reference links
 - No external AI APIs
 

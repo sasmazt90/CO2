@@ -4,13 +4,16 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import { challenges } from '../data/challenges';
 import { createBadges, friends } from '../data/friends';
 import { breakdownHistory, todayMetrics } from '../data/mockMetrics';
+import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import {
   BadgeDefinition,
   CarbonScoreBreakdown,
   ChallengeDefinition,
   FriendScore,
+  LiveSignalState,
   PermissionState,
 } from '../engine/types';
+import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 
 interface AppContextValue {
   ready: boolean;
@@ -19,6 +22,7 @@ interface AppContextValue {
   breakdownHistory: { metrics: typeof todayMetrics; breakdown: CarbonScoreBreakdown }[];
   todayBreakdown: CarbonScoreBreakdown;
   todayMetrics: typeof todayMetrics;
+  liveSignalState: LiveSignalState;
   weeklyAverageScore: number;
   carbonPoints: number;
   streakDays: number;
@@ -28,6 +32,8 @@ interface AppContextValue {
   friends: FriendScore[];
   completeOnboarding: (permissions: PermissionState) => Promise<void>;
   toggleChallenge: (challengeId: string) => void;
+  syncLiveSignals: () => Promise<void>;
+  updateTodayMetricPatch: (patch: Partial<typeof todayMetrics>) => void;
 }
 
 const STORAGE_KEY = 'digital-carbon-footprint-score/app-state';
@@ -49,6 +55,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     'brightness-hero-week',
     'eco-charger',
   ]);
+  const [liveSignalState, setLiveSignalState] = useState<LiveSignalState>({
+    syncedAt: null,
+    status: 'idle',
+    notes: ['Live signals have not been synced yet.'],
+  });
+  const [currentTodayMetrics, setCurrentTodayMetrics] = useState(todayMetrics);
 
   useEffect(() => {
     const loadState = async () => {
@@ -72,6 +84,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     void loadState();
   }, []);
 
+  useEffect(() => {
+    if (ready && hasCompletedOnboarding && liveSignalState.status === 'idle') {
+      void syncLiveSignals();
+    }
+  }, [hasCompletedOnboarding, liveSignalState.status, ready]);
+
   const persist = async (nextValue: {
     hasCompletedOnboarding: boolean;
     permissions: PermissionState;
@@ -89,6 +107,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       permissions: nextPermissions,
       joinedChallenges,
     });
+
+    const { metricPatch, signalState } = await collectDeviceSignalPatch(nextPermissions);
+    setCurrentTodayMetrics((current) => ({ ...current, ...metricPatch }));
+    setLiveSignalState(signalState);
   };
 
   const toggleChallenge = (challengeId: string) => {
@@ -105,15 +127,40 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
-  const todayBreakdown = breakdownHistory[breakdownHistory.length - 1].breakdown;
+  async function syncLiveSignals() {
+    setLiveSignalState((current) => ({ ...current, status: 'syncing', notes: ['Syncing device signals...'] }));
+    try {
+      const { metricPatch, signalState } = await collectDeviceSignalPatch(permissions);
+      setCurrentTodayMetrics((current) => ({ ...current, ...metricPatch }));
+      setLiveSignalState(signalState);
+    } catch {
+      setLiveSignalState({
+        syncedAt: new Date().toISOString(),
+        status: 'error',
+        notes: ['Live signal sync failed on this device.'],
+      });
+    }
+  }
+
+  const updateTodayMetricPatch = (patch: Partial<typeof todayMetrics>) => {
+    setCurrentTodayMetrics((current) => ({ ...current, ...patch }));
+  };
+
+  const todayBreakdown = useMemo(
+    () => evaluateCarbonScore(currentTodayMetrics),
+    [currentTodayMetrics],
+  );
 
   const weeklyAverageScore = useMemo(
     () =>
       Math.round(
-        breakdownHistory.reduce((sum, item) => sum + item.breakdown.score, 0) /
+        (breakdownHistory
+          .slice(0, -1)
+          .reduce((sum, item) => sum + item.breakdown.score, 0) +
+          todayBreakdown.score) /
           breakdownHistory.length,
       ),
-    [],
+    [todayBreakdown.score],
   );
 
   const carbonPoints = useMemo(
@@ -145,7 +192,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       permissions,
       breakdownHistory,
       todayBreakdown,
-      todayMetrics,
+      todayMetrics: currentTodayMetrics,
+      liveSignalState,
       weeklyAverageScore,
       carbonPoints,
       streakDays,
@@ -155,12 +203,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       friends,
       completeOnboarding,
       toggleChallenge,
+      syncLiveSignals,
+      updateTodayMetricPatch,
     }),
     [
       badges,
       carbonPoints,
+      currentTodayMetrics,
       hasCompletedOnboarding,
       joinedChallenges,
+      liveSignalState,
       permissions,
       ready,
       streakDays,

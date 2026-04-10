@@ -22,6 +22,7 @@ import { InsightsScreen } from '../screens/InsightsScreen';
 import { MethodScreen } from '../screens/MethodScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { SignalLabScreen } from '../screens/SignalLabScreen';
 import { MainTabParamList, RootStackParamList } from './types';
 
 const navigationTheme: NavigationTheme = {
@@ -105,6 +106,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
+          <Stack.Screen name="SignalLab" component={SignalLabScreen} options={{ title: 'Signal Lab' }} />
         </Stack.Navigator>
       ) : (
         <OnboardingScreen />

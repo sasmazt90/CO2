@@ -17,7 +17,14 @@ import { formatKgCo2 } from '../utils/formatters';
 
 export const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const { todayBreakdown, breakdownHistory, carbonPoints, streakDays } = useAppContext();
+  const {
+    todayBreakdown,
+    breakdownHistory,
+    carbonPoints,
+    streakDays,
+    liveSignalState,
+    syncLiveSignals,
+  } = useAppContext();
   const trendData = breakdownHistory.map((item) => ({
     date: item.breakdown.date,
     value: item.breakdown.score,
@@ -25,6 +32,26 @@ export const HomeScreen = () => {
 
   return (
     <Screen>
+      <SurfaceCard>
+        <SectionTitle
+          title="Live signals"
+          subtitle={liveSignalState.syncedAt ? `Synced ${new Date(liveSignalState.syncedAt).toLocaleTimeString()}` : 'No live sync yet'}
+          action={
+            <Pressable onPress={() => navigation.navigate('SignalLab')}>
+              <Text style={styles.link}>Signal Lab</Text>
+            </Pressable>
+          }
+        />
+        <Text style={styles.signalCopy}>
+          {liveSignalState.notes[0] ?? 'Use live sync to pull available device signals into today’s score.'}
+        </Text>
+        <Pressable onPress={() => void syncLiveSignals()} style={styles.syncButton}>
+          <Text style={styles.syncButtonText}>
+            {liveSignalState.status === 'syncing' ? 'Syncing...' : 'Sync now'}
+          </Text>
+        </Pressable>
+      </SurfaceCard>
+
       <SurfaceCard>
         <Text style={styles.eyebrow}>Today&apos;s Digital Carbon Score</Text>
         <ScoreRing
@@ -115,5 +142,23 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
+  },
+  signalCopy: {
+    color: colors.forestInk,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  syncButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.pastelGreen,
+    borderRadius: 8,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  syncButtonText: {
+    color: colors.forestInk,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
   },
 });

@@ -1,5 +1,6 @@
+import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
@@ -10,7 +11,8 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 export const SettingsScreen = () => {
-  const { permissions } = useAppContext();
+  const navigation = useNavigation<any>();
+  const { permissions, liveSignalState } = useAppContext();
 
   return (
     <Screen>
@@ -37,6 +39,17 @@ export const SettingsScreen = () => {
           Dark mode is intentionally disabled so the score language stays airy, soft, and consistent across the full app.
         </Text>
       </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Signal sync" subtitle="Available on-device readings" />
+        <Text style={styles.body}>
+          Status: {liveSignalState.status}
+          {liveSignalState.deviceName ? ` • ${liveSignalState.deviceName}` : ''}
+        </Text>
+        <Pressable onPress={() => navigation.navigate('SignalLab')} style={styles.button}>
+          <Text style={styles.buttonText}>Open Signal Lab</Text>
+        </Pressable>
+      </SurfaceCard>
     </Screen>
   );
 };
@@ -62,6 +75,19 @@ const styles = StyleSheet.create({
   value: {
     color: colors.deepTeal,
     fontFamily: typography.body,
+    fontSize: 12,
+  },
+  button: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.softTeal,
+    borderRadius: 8,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  buttonText: {
+    color: colors.softWhite,
+    fontFamily: typography.bodyMedium,
     fontSize: 12,
   },
 });

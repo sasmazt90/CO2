@@ -128,6 +128,18 @@ export interface PermissionState {
   notifications: boolean;
 }
 
+export interface LiveSignalState {
+  syncedAt: string | null;
+  status: 'idle' | 'syncing' | 'ready' | 'error';
+  notes: string[];
+  deviceName?: string;
+  batteryLevel?: number;
+  batteryState?: string;
+  currentBrightness?: number;
+  stepsToday?: number;
+  locationEnabled?: boolean;
+}
+
 export interface ChallengeDefinition {
   id: string;
   title: string;

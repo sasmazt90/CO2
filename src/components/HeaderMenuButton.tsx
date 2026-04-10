@@ -8,6 +8,7 @@ import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 const menuItems = [
+  { label: 'Signal Lab', route: 'SignalLab' },
   { label: 'Our Scientific Method', route: 'Method' },
   { label: 'Badges', route: 'Badges' },
   { label: 'Settings', route: 'Settings' },
