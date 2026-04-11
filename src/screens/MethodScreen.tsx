@@ -115,6 +115,11 @@ export const MethodScreen = () => {
         <SectionTitle
           title="Collector Transparency"
           subtitle={`${collectorSummary.coverage.byStatus.live.outcomeCount}/${collectorSummary.coverage.totalOutcomes} outcomes are backed by live collectors today`}
+          action={
+            <Pressable onPress={() => navigation.navigate('BridgeStatus')}>
+              <Text style={styles.link}>Bridge Status</Text>
+            </Pressable>
+          }
         />
         <Text style={styles.body}>
           Live families cover {collectorSummary.coverage.byStatus.live.categoryCount} of{' '}

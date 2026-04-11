@@ -1,5 +1,6 @@
+import { useNavigation } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { CollectorCapabilityCard } from '../components/CollectorCapabilityCard';
 import { Screen } from '../components/Screen';
@@ -12,6 +13,7 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 export const DataSourcesScreen = () => {
+  const navigation = useNavigation<any>();
   const { collectorCapabilities } = useAppContext();
 
   const summary = useMemo(() => {
@@ -34,6 +36,11 @@ export const DataSourcesScreen = () => {
         <SectionTitle
           title="Data Sources"
           subtitle="Which metric families are live, estimated, blocked, or waiting on native bridges"
+          action={
+            <Pressable onPress={() => navigation.navigate('BridgeStatus')}>
+              <Text style={styles.link}>Bridge Status</Text>
+            </Pressable>
+          }
         />
         <View style={styles.summaryRow}>
           <View>
@@ -92,6 +99,11 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     lineHeight: 17,
+  },
+  link: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
   },
   summaryValue: {
     color: colors.forestInk,
