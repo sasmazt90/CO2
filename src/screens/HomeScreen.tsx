@@ -10,6 +10,7 @@ import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { TrendChart } from '../components/TrendChart';
 import { useAppContext } from '../context/AppContext';
+import { summarizeCollectorCoverage } from '../services/collectorCoverage';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -27,10 +28,9 @@ export const HomeScreen = () => {
     notificationFeed,
     syncLiveSignals,
   } = useAppContext();
-  const liveCollectors = collectorCapabilities.filter((item) => item.status === 'live').length;
-  const nativeCollectors = collectorCapabilities.filter(
-    (item) => item.status === 'native-required',
-  ).length;
+  const coverageSummary = summarizeCollectorCoverage(collectorCapabilities);
+  const liveCollectors = coverageSummary.byStatus.live.familyCount;
+  const nativeCollectors = coverageSummary.byStatus['native-required'].familyCount;
   const trendData = breakdownHistory.slice(-7).map((item) => ({
     date: item.breakdown.date,
     value: item.breakdown.score,
@@ -41,7 +41,7 @@ export const HomeScreen = () => {
       <SurfaceCard>
         <SectionTitle
           title="Collector readiness"
-          subtitle={`${liveCollectors} live families, ${nativeCollectors} still waiting on native bridges`}
+          subtitle={`${liveCollectors} live families covering ${coverageSummary.byStatus.live.outcomeCount}/${coverageSummary.totalOutcomes} outcomes`}
           action={
             <Pressable onPress={() => navigation.navigate('DataSources')}>
               <Text style={styles.link}>Open</Text>
@@ -49,7 +49,8 @@ export const HomeScreen = () => {
           }
         />
         <Text style={styles.signalCopy}>
-          Data source visibility keeps it clear which parts of the score are device-backed and which still use transparent estimates.
+          {nativeCollectors} families still wait on native bridges, while the rest
+          stay transparent as live or estimated inputs.
         </Text>
       </SurfaceCard>
 
@@ -64,7 +65,8 @@ export const HomeScreen = () => {
           }
         />
         <Text style={styles.signalCopy}>
-          {liveSignalState.notes[0] ?? 'Use live sync to pull available device signals into today’s score.'}
+          {liveSignalState.notes[0] ??
+            "Use live sync to pull available device signals into today's score."}
         </Text>
         <Pressable onPress={() => void syncLiveSignals()} style={styles.syncButton}>
           <Text style={styles.syncButtonText}>

@@ -157,15 +157,37 @@ export type CollectorCapabilityStatus =
   | 'blocked'
   | 'unavailable';
 
+export type CollectorCapabilityId =
+  | 'screen-time'
+  | 'brightness-display'
+  | 'battery-charging'
+  | 'motion-steps'
+  | 'location-mobility'
+  | 'notifications-local'
+  | 'network-radios'
+  | 'audio-calls'
+  | 'background-processes'
+  | 'camera-ar-sensors';
+
+export interface CollectorCapabilityCoverage {
+  categoryCount: number;
+  outcomeCount: number;
+  coverageShare: number;
+  coveredCategories: string[];
+}
+
 export interface CollectorCapability {
-  id: string;
+  id: CollectorCapabilityId;
   title: string;
   group: ScoreGroup | 'Cross-platform';
   status: CollectorCapabilityStatus;
   summary: string;
   detail: string;
   signals: string[];
+  coverage: CollectorCapabilityCoverage;
 }
+
+export type CollectorCapabilitySeed = Omit<CollectorCapability, 'coverage'>;
 
 export interface LiveSignalState {
   syncedAt: string | null;

@@ -14,7 +14,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - Local daily history journal with persisted score snapshots and trend rebuilding
 - Segmented social leaderboards, joint challenges, and a shareable weekly card flow
 - Runtime permission diagnostics in onboarding and settings
-- Collector readiness registry showing live vs estimated vs native-required metric families
+- Collector readiness registry showing live vs estimated vs native-required metric families, plus rule coverage by family
 - Tooltip info system with reference links
 - No external AI APIs
 

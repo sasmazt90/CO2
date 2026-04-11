@@ -6,6 +6,7 @@ import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { useAppContext } from '../context/AppContext';
+import { summarizeCollectorCoverage } from '../services/collectorCoverage';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -14,14 +15,17 @@ export const DataSourcesScreen = () => {
   const { collectorCapabilities } = useAppContext();
 
   const summary = useMemo(() => {
-    const live = collectorCapabilities.filter((item) => item.status === 'live').length;
-    const estimated = collectorCapabilities.filter((item) => item.status === 'estimated').length;
-    const nativeRequired = collectorCapabilities.filter(
-      (item) => item.status === 'native-required',
-    ).length;
-    const blocked = collectorCapabilities.filter((item) => item.status === 'blocked').length;
+    const coverage = summarizeCollectorCoverage(collectorCapabilities);
 
-    return { live, estimated, nativeRequired, blocked };
+    return {
+      ...coverage,
+      needsAccessFamilies:
+        coverage.byStatus.blocked.familyCount +
+        coverage.byStatus.unavailable.familyCount,
+      needsAccessOutcomes:
+        coverage.byStatus.blocked.outcomeCount +
+        coverage.byStatus.unavailable.outcomeCount,
+    };
   }, [collectorCapabilities]);
 
   return (
@@ -33,22 +37,34 @@ export const DataSourcesScreen = () => {
         />
         <View style={styles.summaryRow}>
           <View>
-            <Text style={styles.summaryValue}>{summary.live}</Text>
+            <Text style={styles.summaryValue}>{summary.byStatus.live.familyCount}</Text>
             <Text style={styles.summaryLabel}>Live</Text>
           </View>
           <View>
-            <Text style={styles.summaryValue}>{summary.estimated}</Text>
+            <Text style={styles.summaryValue}>{summary.byStatus.estimated.familyCount}</Text>
             <Text style={styles.summaryLabel}>Estimated</Text>
           </View>
           <View>
-            <Text style={styles.summaryValue}>{summary.nativeRequired}</Text>
+            <Text style={styles.summaryValue}>
+              {summary.byStatus['native-required'].familyCount}
+            </Text>
             <Text style={styles.summaryLabel}>Native</Text>
           </View>
           <View>
-            <Text style={styles.summaryValue}>{summary.blocked}</Text>
-            <Text style={styles.summaryLabel}>Blocked</Text>
+            <Text style={styles.summaryValue}>{summary.needsAccessFamilies}</Text>
+            <Text style={styles.summaryLabel}>Access</Text>
           </View>
         </View>
+        <Text style={styles.coverageCopy}>
+          Live collectors currently back {summary.byStatus.live.outcomeCount} of{' '}
+          {summary.totalOutcomes} rule outcomes across {summary.byStatus.live.categoryCount}{' '}
+          of {summary.totalCategories} categories.
+        </Text>
+        <Text style={styles.coverageSecondary}>
+          Native bridges would unlock {summary.byStatus['native-required'].outcomeCount}{' '}
+          more outcomes, while blocked or unavailable access affects{' '}
+          {summary.needsAccessOutcomes}.
+        </Text>
       </SurfaceCard>
 
       {collectorCapabilities.map((capability) => (
@@ -63,6 +79,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.sm,
+  },
+  coverageCopy: {
+    color: colors.forestInk,
+    fontFamily: typography.body,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: spacing.sm,
+  },
+  coverageSecondary: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 17,
   },
   summaryValue: {
     color: colors.forestInk,

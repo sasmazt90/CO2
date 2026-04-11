@@ -7,6 +7,7 @@ import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { useAppContext } from '../context/AppContext';
+import { summarizeCollectorCoverage } from '../services/collectorCoverage';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -20,8 +21,11 @@ export const SettingsScreen = () => {
     permissionDiagnostics,
     refreshPermissionDiagnostics,
   } = useAppContext();
-  const liveCollectors = collectorCapabilities.filter((item) => item.status === 'live').length;
-  const blockedCollectors = collectorCapabilities.filter((item) => item.status === 'blocked').length;
+  const coverageSummary = summarizeCollectorCoverage(collectorCapabilities);
+  const liveCollectors = coverageSummary.byStatus.live.familyCount;
+  const blockedCollectors =
+    coverageSummary.byStatus.blocked.familyCount +
+    coverageSummary.byStatus.unavailable.familyCount;
 
   return (
     <Screen>
@@ -58,7 +62,9 @@ export const SettingsScreen = () => {
       <SurfaceCard>
         <SectionTitle title="Collector readiness" subtitle="How the score is being fed right now" />
         <Text style={styles.body}>
-          Live families: {liveCollectors} - Blocked families: {blockedCollectors}
+          Live families: {liveCollectors} | Blocked families: {blockedCollectors} |
+          Live coverage: {coverageSummary.byStatus.live.outcomeCount}/
+          {coverageSummary.totalOutcomes} outcomes
         </Text>
         <Pressable onPress={() => navigation.navigate('DataSources')} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Open Data Sources</Text>

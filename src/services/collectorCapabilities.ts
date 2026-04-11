@@ -1,8 +1,10 @@
 import {
   CollectorCapability,
+  CollectorCapabilitySeed,
   LiveSignalState,
   PermissionDiagnostic,
 } from '../engine/types';
+import { attachCollectorCoverage } from './collectorCoverage';
 
 const getDiagnostic = (
   diagnostics: PermissionDiagnostic[],
@@ -21,7 +23,7 @@ export const buildCollectorCapabilities = ({
   const notifications = getDiagnostic(diagnostics, 'notifications');
   const screenTime = getDiagnostic(diagnostics, 'screenTime');
 
-  return [
+  const capabilities: CollectorCapabilitySeed[] = [
     {
       id: 'screen-time',
       title: 'Screen Time & App Usage',
@@ -192,4 +194,6 @@ export const buildCollectorCapabilities = ({
       ],
     },
   ];
+
+  return attachCollectorCoverage(capabilities);
 };

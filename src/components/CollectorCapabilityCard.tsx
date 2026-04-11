@@ -8,15 +8,36 @@ import { typography } from '../theme/typography';
 import { SurfaceCard } from './SurfaceCard';
 
 const statusMeta = {
-  live: { label: 'Live', bg: 'rgba(173,225,175,0.32)', text: '#4C8A5C' },
-  estimated: { label: 'Estimated', bg: 'rgba(221,235,221,0.85)', text: colors.warmGray },
+  live: {
+    label: 'Live',
+    bg: 'rgba(173,225,175,0.32)',
+    text: '#4C8A5C',
+    fill: colors.pastelGreen,
+  },
+  estimated: {
+    label: 'Estimated',
+    bg: 'rgba(221,235,221,0.85)',
+    text: colors.warmGray,
+    fill: colors.mintGreen,
+  },
   'native-required': {
     label: 'Native required',
     bg: 'rgba(137,210,198,0.2)',
     text: colors.deepTeal,
+    fill: colors.softTeal,
   },
-  blocked: { label: 'Blocked', bg: 'rgba(137,210,198,0.22)', text: colors.deepTeal },
-  unavailable: { label: 'Unavailable', bg: 'rgba(160,167,162,0.16)', text: colors.warmGray },
+  blocked: {
+    label: 'Blocked',
+    bg: 'rgba(137,210,198,0.22)',
+    text: colors.deepTeal,
+    fill: colors.deepTeal,
+  },
+  unavailable: {
+    label: 'Unavailable',
+    bg: 'rgba(160,167,162,0.16)',
+    text: colors.warmGray,
+    fill: colors.warmGray,
+  },
 } as const;
 
 export const CollectorCapabilityCard = ({
@@ -25,6 +46,10 @@ export const CollectorCapabilityCard = ({
   capability: CollectorCapability;
 }) => {
   const meta = statusMeta[capability.status];
+  const coverageWidth =
+    capability.coverage.outcomeCount === 0
+      ? 0
+      : Math.max(capability.coverage.coverageShare * 100, 8);
 
   return (
     <SurfaceCard style={styles.card}>
@@ -39,6 +64,21 @@ export const CollectorCapabilityCard = ({
       </View>
       <Text style={styles.summary}>{capability.summary}</Text>
       <Text style={styles.detail}>{capability.detail}</Text>
+      <Text style={styles.coverageText}>
+        Covers {capability.coverage.categoryCount} categories and{' '}
+        {capability.coverage.outcomeCount} rule outcomes
+      </Text>
+      <View style={styles.track}>
+        <View
+          style={[
+            styles.fill,
+            {
+              backgroundColor: meta.fill,
+              width: `${coverageWidth}%`,
+            },
+          ]}
+        />
+      </View>
       <View style={styles.signalWrap}>
         {capability.signals.map((signal) => (
           <View key={signal} style={styles.signalChip}>
@@ -94,6 +134,21 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 12,
     lineHeight: 17,
+  },
+  coverageText: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+  },
+  track: {
+    backgroundColor: 'rgba(160,167,162,0.12)',
+    borderRadius: radius.sm,
+    height: 8,
+    overflow: 'hidden',
+  },
+  fill: {
+    borderRadius: radius.sm,
+    height: 8,
   },
   signalWrap: {
     flexDirection: 'row',
