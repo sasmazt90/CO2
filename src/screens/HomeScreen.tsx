@@ -21,11 +21,16 @@ export const HomeScreen = () => {
     todayBreakdown,
     breakdownHistory,
     carbonPoints,
+    collectorCapabilities,
     streakDays,
     liveSignalState,
     notificationFeed,
     syncLiveSignals,
   } = useAppContext();
+  const liveCollectors = collectorCapabilities.filter((item) => item.status === 'live').length;
+  const nativeCollectors = collectorCapabilities.filter(
+    (item) => item.status === 'native-required',
+  ).length;
   const trendData = breakdownHistory.slice(-7).map((item) => ({
     date: item.breakdown.date,
     value: item.breakdown.score,
@@ -33,6 +38,21 @@ export const HomeScreen = () => {
 
   return (
     <Screen>
+      <SurfaceCard>
+        <SectionTitle
+          title="Collector readiness"
+          subtitle={`${liveCollectors} live families, ${nativeCollectors} still waiting on native bridges`}
+          action={
+            <Pressable onPress={() => navigation.navigate('DataSources')}>
+              <Text style={styles.link}>Open</Text>
+            </Pressable>
+          }
+        />
+        <Text style={styles.signalCopy}>
+          Data source visibility keeps it clear which parts of the score are device-backed and which still use transparent estimates.
+        </Text>
+      </SurfaceCard>
+
       <SurfaceCard>
         <SectionTitle
           title="Live signals"

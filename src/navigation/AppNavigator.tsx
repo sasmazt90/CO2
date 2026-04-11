@@ -15,6 +15,7 @@ import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { BadgesScreen } from '../screens/BadgesScreen';
 import { ChallengesScreen } from '../screens/ChallengesScreen';
+import { DataSourcesScreen } from '../screens/DataSourcesScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
@@ -105,6 +106,7 @@ export const AppNavigator = () => {
           }}
         >
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="DataSources" component={DataSourcesScreen} options={{ title: 'Data Sources' }} />
           <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />

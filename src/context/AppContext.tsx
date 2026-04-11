@@ -12,6 +12,7 @@ import {
   BadgeDefinition,
   CarbonScoreBreakdown,
   ChallengeDefinition,
+  CollectorCapability,
   DailyMetrics,
   FriendScore,
   HistorySnapshot,
@@ -22,6 +23,7 @@ import {
   PermissionState,
 } from '../engine/types';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
+import { buildCollectorCapabilities } from '../services/collectorCapabilities';
 import {
   buildHistoryBreakdowns,
   createSeedHistory,
@@ -42,6 +44,7 @@ interface AppContextValue {
   todayMetrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   permissionDiagnostics: PermissionDiagnostic[];
+  collectorCapabilities: CollectorCapability[];
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
   weeklyAverageScore: number;
@@ -252,6 +255,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     [currentTodayMetrics],
   );
 
+  const collectorCapabilities = useMemo(
+    () =>
+      buildCollectorCapabilities({
+        diagnostics: permissionDiagnostics,
+        liveSignalState,
+      }),
+    [liveSignalState, permissionDiagnostics],
+  );
+
   const breakdownHistory = useMemo(
     () => buildHistoryBreakdowns(historySnapshots),
     [historySnapshots],
@@ -326,6 +338,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       todayMetrics: currentTodayMetrics,
       liveSignalState,
       permissionDiagnostics,
+      collectorCapabilities,
       notificationFeed,
       notificationsEnabled,
       weeklyAverageScore,
@@ -356,6 +369,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       joinedChallenges,
       liveSignalState,
       permissionDiagnostics,
+      collectorCapabilities,
       notificationFeed,
       notificationsEnabled,
       permissions,

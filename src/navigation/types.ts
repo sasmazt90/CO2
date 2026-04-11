@@ -1,6 +1,7 @@
 export type RootStackParamList = {
   MainTabs: undefined;
   Method: undefined;
+  DataSources: undefined;
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;

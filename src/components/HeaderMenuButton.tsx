@@ -8,6 +8,7 @@ import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 const menuItems = [
+  { label: 'Data Sources', route: 'DataSources' },
   { label: 'Share Card', route: 'ShareCard' },
   { label: 'Notification Center', route: 'NotificationCenter' },
   { label: 'Signal Lab', route: 'SignalLab' },

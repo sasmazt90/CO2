@@ -150,6 +150,23 @@ export interface PermissionDiagnostic {
   actionLabel: string;
 }
 
+export type CollectorCapabilityStatus =
+  | 'live'
+  | 'estimated'
+  | 'native-required'
+  | 'blocked'
+  | 'unavailable';
+
+export interface CollectorCapability {
+  id: string;
+  title: string;
+  group: ScoreGroup | 'Cross-platform';
+  status: CollectorCapabilityStatus;
+  summary: string;
+  detail: string;
+  signals: string[];
+}
+
 export interface LiveSignalState {
   syncedAt: string | null;
   status: 'idle' | 'syncing' | 'ready' | 'error';

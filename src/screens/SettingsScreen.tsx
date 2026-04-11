@@ -14,11 +14,14 @@ import { typography } from '../theme/typography';
 export const SettingsScreen = () => {
   const navigation = useNavigation<any>();
   const {
+    collectorCapabilities,
     permissions,
     liveSignalState,
     permissionDiagnostics,
     refreshPermissionDiagnostics,
   } = useAppContext();
+  const liveCollectors = collectorCapabilities.filter((item) => item.status === 'live').length;
+  const blockedCollectors = collectorCapabilities.filter((item) => item.status === 'blocked').length;
 
   return (
     <Screen>
@@ -51,6 +54,16 @@ export const SettingsScreen = () => {
       {permissionDiagnostics.map((diagnostic) => (
         <PermissionDiagnosticCard key={diagnostic.id} diagnostic={diagnostic} />
       ))}
+
+      <SurfaceCard>
+        <SectionTitle title="Collector readiness" subtitle="How the score is being fed right now" />
+        <Text style={styles.body}>
+          Live families: {liveCollectors} - Blocked families: {blockedCollectors}
+        </Text>
+        <Pressable onPress={() => navigation.navigate('DataSources')} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Open Data Sources</Text>
+        </Pressable>
+      </SurfaceCard>
 
       <SurfaceCard>
         <SectionTitle title="Theme" subtitle="EcoCalm only" />
