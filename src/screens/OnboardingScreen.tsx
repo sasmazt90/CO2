@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { BrandLogo } from '../components/BrandLogo';
 import { Screen } from '../components/Screen';
 import { useAppContext } from '../context/AppContext';
-import { PermissionState } from '../engine/types';
+import { PermissionDiagnostic, PermissionState } from '../engine/types';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
@@ -49,7 +49,8 @@ const permissionLabels: { key: keyof PermissionState; title: string; subtitle: s
 ];
 
 export const OnboardingScreen = () => {
-  const { completeOnboarding } = useAppContext();
+  const { completeOnboarding, permissionDiagnostics, refreshPermissionDiagnostics } =
+    useAppContext();
   const [permissions, setPermissions] = useState<PermissionState>({
     screenTime: true,
     motion: true,
@@ -57,6 +58,14 @@ export const OnboardingScreen = () => {
     notifications: true,
   });
   const [submitting, setSubmitting] = useState(false);
+
+  const diagnosticsById = useMemo(
+    () =>
+      Object.fromEntries(
+        permissionDiagnostics.map((diagnostic) => [diagnostic.id, diagnostic]),
+      ) as Partial<Record<keyof PermissionState, PermissionDiagnostic>>,
+    [permissionDiagnostics],
+  );
 
   const completedCount = useMemo(
     () => Object.values(permissions).filter(Boolean).length,
@@ -87,6 +96,12 @@ export const OnboardingScreen = () => {
         <Text style={styles.cardBody}>
           Only system-provided, user-approved signals are used. Results stay on-device in this prototype flow.
         </Text>
+        <Pressable
+          onPress={() => void refreshPermissionDiagnostics()}
+          style={styles.refreshButton}
+        >
+          <Text style={styles.refreshButtonText}>Refresh device status</Text>
+        </Pressable>
         {permissionLabels.map((item) => (
           <Pressable
             key={item.key}
@@ -101,6 +116,11 @@ export const OnboardingScreen = () => {
             <View style={styles.permissionCopy}>
               <Text style={styles.permissionTitle}>{item.title}</Text>
               <Text style={styles.permissionSubtitle}>{item.subtitle}</Text>
+              {diagnosticsById[item.key]?.summary ? (
+                <Text style={styles.permissionStatus}>
+                  {diagnosticsById[item.key]?.summary}
+                </Text>
+              ) : null}
             </View>
             <View style={[styles.switch, permissions[item.key] && styles.switchActive]}>
               <View
@@ -209,6 +229,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
   },
+  permissionStatus: {
+    color: colors.deepTeal,
+    fontFamily: typography.body,
+    fontSize: 11,
+    lineHeight: 16,
+    marginTop: spacing.xxs,
+  },
   switch: {
     backgroundColor: 'rgba(160,167,162,0.2)',
     borderRadius: 999,
@@ -242,6 +269,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.softTeal,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
+  },
+  refreshButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(221,235,221,0.85)',
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  refreshButtonText: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
   },
   primaryButtonText: {
     color: colors.softWhite,

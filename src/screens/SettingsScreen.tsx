@@ -2,6 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PermissionDiagnosticCard } from '../components/PermissionDiagnosticCard';
 import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
@@ -12,7 +13,12 @@ import { typography } from '../theme/typography';
 
 export const SettingsScreen = () => {
   const navigation = useNavigation<any>();
-  const { permissions, liveSignalState } = useAppContext();
+  const {
+    permissions,
+    liveSignalState,
+    permissionDiagnostics,
+    refreshPermissionDiagnostics,
+  } = useAppContext();
 
   return (
     <Screen>
@@ -24,14 +30,27 @@ export const SettingsScreen = () => {
       </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle title="Permissions" subtitle="Current onboarding choices" />
+        <SectionTitle
+          title="Permissions"
+          subtitle="Current onboarding choices and actual runtime access"
+        />
         {Object.entries(permissions).map(([key, value]) => (
           <View key={key} style={styles.row}>
             <Text style={styles.label}>{key}</Text>
             <Text style={styles.value}>{value ? 'Enabled' : 'Disabled'}</Text>
           </View>
         ))}
+        <Pressable
+          onPress={() => void refreshPermissionDiagnostics()}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryButtonText}>Refresh diagnostics</Text>
+        </Pressable>
       </SurfaceCard>
+
+      {permissionDiagnostics.map((diagnostic) => (
+        <PermissionDiagnosticCard key={diagnostic.id} diagnostic={diagnostic} />
+      ))}
 
       <SurfaceCard>
         <SectionTitle title="Theme" subtitle="EcoCalm only" />
@@ -44,7 +63,7 @@ export const SettingsScreen = () => {
         <SectionTitle title="Signal sync" subtitle="Available on-device readings" />
         <Text style={styles.body}>
           Status: {liveSignalState.status}
-          {liveSignalState.deviceName ? ` • ${liveSignalState.deviceName}` : ''}
+          {liveSignalState.deviceName ? ` - ${liveSignalState.deviceName}` : ''}
         </Text>
         <Pressable onPress={() => navigation.navigate('SignalLab')} style={styles.button}>
           <Text style={styles.buttonText}>Open Signal Lab</Text>
@@ -87,6 +106,20 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: colors.softWhite,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+  },
+  secondaryButton: {
+    alignSelf: 'flex-start',
+    borderColor: colors.softTeal,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  secondaryButtonText: {
+    color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 12,
   },

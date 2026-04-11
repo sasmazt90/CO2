@@ -6,7 +6,6 @@ import {
   createBadges,
   getLeaderboardByCohort,
   jointChallenges,
-  leaderboardEntries,
 } from '../data/friends';
 import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import {
@@ -19,6 +18,7 @@ import {
   JointChallenge,
   LiveSignalState,
   NotificationItem,
+  PermissionDiagnostic,
   PermissionState,
 } from '../engine/types';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
@@ -31,6 +31,7 @@ import {
   upsertTodaySnapshot,
 } from '../services/historyService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
+import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 
 interface AppContextValue {
   ready: boolean;
@@ -40,6 +41,7 @@ interface AppContextValue {
   todayBreakdown: CarbonScoreBreakdown;
   todayMetrics: DailyMetrics;
   liveSignalState: LiveSignalState;
+  permissionDiagnostics: PermissionDiagnostic[];
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
   weeklyAverageScore: number;
@@ -58,6 +60,7 @@ interface AppContextValue {
   completeOnboarding: (permissions: PermissionState) => Promise<void>;
   toggleChallenge: (challengeId: string) => void;
   syncLiveSignals: () => Promise<void>;
+  refreshPermissionDiagnostics: (requestIfNeeded?: boolean) => Promise<void>;
   updateTodayMetricPatch: (patch: Partial<DailyMetrics>) => void;
   markNotificationRead: (notificationId: string) => void;
 }
@@ -88,6 +91,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   });
   const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
   const [currentTodayMetrics, setCurrentTodayMetrics] = useState<DailyMetrics>(createTodayMetricSeed());
+  const [permissionDiagnostics, setPermissionDiagnostics] = useState<PermissionDiagnostic[]>([]);
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -122,6 +126,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentTodayMetrics(nextTodayMetrics);
         setHistorySnapshots(nextHistorySnapshots);
         await saveHistorySnapshots(nextHistorySnapshots);
+        const diagnostics = await loadPermissionDiagnostics(
+          value
+            ? (JSON.parse(value) as { permissions: PermissionState }).permissions
+            : defaultPermissions,
+        );
+        setPermissionDiagnostics(diagnostics);
       } finally {
         setReady(true);
       }
@@ -135,6 +145,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       void syncLiveSignals();
     }
   }, [hasCompletedOnboarding, liveSignalState.status, ready]);
+
+  useEffect(() => {
+    if (ready) {
+      void refreshPermissionDiagnostics();
+    }
+  }, [permissions, ready]);
 
   const persist = async (nextValue: {
     hasCompletedOnboarding: boolean;
@@ -170,6 +186,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       joinedChallenges,
     });
 
+    await refreshPermissionDiagnostics(true, nextPermissions);
     const { metricPatch, signalState } = await collectDeviceSignalPatch(nextPermissions);
     applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
     setLiveSignalState(signalState);
@@ -205,6 +222,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         notes: ['Live signal sync failed on this device.'],
       });
     }
+  }
+
+  async function refreshPermissionDiagnostics(
+    requestIfNeeded = false,
+    overridePermissions?: PermissionState,
+  ) {
+    const diagnostics = await loadPermissionDiagnostics(
+      overridePermissions ?? permissions,
+      requestIfNeeded,
+    );
+    setPermissionDiagnostics(diagnostics);
   }
 
   const updateTodayMetricPatch = (patch: Partial<DailyMetrics>) => {
@@ -297,6 +325,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       todayBreakdown,
       todayMetrics: currentTodayMetrics,
       liveSignalState,
+      permissionDiagnostics,
       notificationFeed,
       notificationsEnabled,
       weeklyAverageScore,
@@ -315,6 +344,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       completeOnboarding,
       toggleChallenge,
       syncLiveSignals,
+      refreshPermissionDiagnostics,
       updateTodayMetricPatch,
       markNotificationRead,
     }),
@@ -325,11 +355,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       hasCompletedOnboarding,
       joinedChallenges,
       liveSignalState,
+      permissionDiagnostics,
       notificationFeed,
       notificationsEnabled,
       permissions,
       ready,
-      leaderboardEntries,
       streakDays,
       todayBreakdown,
       weeklyAverageScore,

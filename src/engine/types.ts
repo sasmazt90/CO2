@@ -133,6 +133,23 @@ export interface PermissionState {
   notifications: boolean;
 }
 
+export type PermissionDiagnosticStatus =
+  | 'granted'
+  | 'available'
+  | 'pending'
+  | 'blocked'
+  | 'unavailable'
+  | 'native-required';
+
+export interface PermissionDiagnostic {
+  id: keyof PermissionState;
+  title: string;
+  status: PermissionDiagnosticStatus;
+  summary: string;
+  detail: string;
+  actionLabel: string;
+}
+
 export interface LiveSignalState {
   syncedAt: string | null;
   status: 'idle' | 'syncing' | 'ready' | 'error';

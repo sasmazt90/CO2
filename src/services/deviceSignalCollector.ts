@@ -27,7 +27,8 @@ export const collectDeviceSignalPatch = async (
     syncedAt: new Date().toISOString(),
     status: 'ready',
     notes,
-    deviceName: Device.deviceName ?? `${Device.brand ?? 'Mobile'} ${Device.modelName ?? ''}`.trim(),
+    deviceName:
+      Device.deviceName ?? `${Device.brand ?? 'Mobile'} ${Device.modelName ?? ''}`.trim(),
   };
 
   try {
@@ -61,7 +62,7 @@ export const collectDeviceSignalPatch = async (
         metricPatch.timeAt100WhilePlugged = 15;
       }
 
-      notes.push('Charging state was detected and merged into today’s charging estimate.');
+      notes.push("Charging state was detected and merged into today's charging estimate.");
     }
 
     if (lowPowerMode) {
@@ -78,7 +79,7 @@ export const collectDeviceSignalPatch = async (
       const brightness = await Brightness.getBrightnessAsync();
       signalState.currentBrightness = brightness;
       metricPatch.avgBrightness = brightness;
-      notes.push('Current screen brightness was synced into today’s estimate.');
+      notes.push("Current screen brightness was synced into today's estimate.");
     }
   } catch {
     notes.push('Brightness signal was unavailable.');
@@ -91,7 +92,7 @@ export const collectDeviceSignalPatch = async (
         const steps = await Pedometer.getStepCountAsync(startOfToday(), new Date());
         signalState.stepsToday = steps.steps;
         metricPatch.steps = steps.steps;
-        notes.push('Today’s step count was synced from the motion sensor.');
+        notes.push("Today's step count was synced from the motion sensor.");
       } else {
         notes.push('Pedometer is not available on this device.');
       }
