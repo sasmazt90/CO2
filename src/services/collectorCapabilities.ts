@@ -57,8 +57,10 @@ export const buildCollectorCapabilities = ({
       group: 'Charging',
       status: liveSignalState.batteryLevel !== undefined ? 'live' : 'estimated',
       summary:
-        liveSignalState.batteryLevel !== undefined
-          ? 'Battery state and charging status are live.'
+        liveSignalState.batteryJournalDerived
+          ? `Battery state is live and a local charging journal is shaping today's metrics from ${liveSignalState.batteryJournalSamples ?? 0} samples.`
+          : liveSignalState.batteryLevel !== undefined
+            ? 'Battery state is live and the charging journal is collecting local samples.'
           : 'Charging and battery range logic is still using seeded estimates.',
       detail:
         'Supports overcharging, overnight charging, battery range, and charge-session heuristics.',

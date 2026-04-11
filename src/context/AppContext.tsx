@@ -22,6 +22,10 @@ import {
   PermissionDiagnostic,
   PermissionState,
 } from '../engine/types';
+import {
+  buildBatteryJournalSummary,
+  startBatteryJournalListeners,
+} from '../services/batteryJournalService';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 import { buildCollectorCapabilities } from '../services/collectorCapabilities';
 import {
@@ -154,6 +158,54 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       void refreshPermissionDiagnostics();
     }
   }, [permissions, ready]);
+
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding) {
+      return;
+    }
+
+    let active = true;
+
+    const applyBatteryJournalSummary = async () => {
+      const summary = await buildBatteryJournalSummary();
+
+      if (!active || summary.sampleCount === 0) {
+        return;
+      }
+
+      if (summary.derivedFromJournal && Object.keys(summary.metricPatch).length > 0) {
+        applyTodayMetrics((current) => ({ ...current, ...summary.metricPatch }));
+      }
+
+      setLiveSignalState((current) => {
+        const nextNotes = summary.note
+          ? [
+              summary.note,
+              ...current.notes.filter((note) => !note.startsWith('Battery journal')),
+            ]
+          : current.notes;
+
+        return {
+          ...current,
+          batteryJournalSamples: summary.sampleCount,
+          batteryJournalDerived: summary.derivedFromJournal,
+          batteryJournalLastSampleAt:
+            summary.lastSampleAt ?? current.batteryJournalLastSampleAt,
+          notes: nextNotes,
+        };
+      });
+    };
+
+    void applyBatteryJournalSummary();
+    const stopBatteryJournal = startBatteryJournalListeners(() => {
+      void applyBatteryJournalSummary();
+    });
+
+    return () => {
+      active = false;
+      stopBatteryJournal();
+    };
+  }, [hasCompletedOnboarding, ready]);
 
   const persist = async (nextValue: {
     hasCompletedOnboarding: boolean;

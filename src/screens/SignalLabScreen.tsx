@@ -119,6 +119,12 @@ export const SignalLabScreen = () => {
         {liveSignalState.syncedAt ? (
           <Text style={styles.caption}>Last synced: {new Date(liveSignalState.syncedAt).toLocaleString()}</Text>
         ) : null}
+        {liveSignalState.batteryJournalSamples ? (
+          <Text style={styles.caption}>
+            Battery journal samples today: {liveSignalState.batteryJournalSamples}
+            {liveSignalState.batteryJournalDerived ? ' - active in charging metrics' : ''}
+          </Text>
+        ) : null}
         {liveSignalState.notes.map((note) => (
           <Text key={note} style={styles.note}>
             • {note}

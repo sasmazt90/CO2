@@ -5,6 +5,10 @@ import * as Location from 'expo-location';
 import { Pedometer } from 'expo-sensors';
 
 import { DailyMetrics, LiveSignalState, PermissionState } from '../engine/types';
+import {
+  buildBatteryJournalSummary,
+  recordBatterySnapshot,
+} from './batteryJournalService';
 
 const startOfToday = () => {
   const date = new Date();
@@ -68,6 +72,26 @@ export const collectDeviceSignalPatch = async (
     if (lowPowerMode) {
       metricPatch.backgroundActiveApps = 3;
       notes.push('Low Power Mode is on, so background activity was softened.');
+    }
+
+    await recordBatterySnapshot({
+      batteryLevel,
+      batteryState,
+      lowPowerMode,
+      source: 'sync',
+    });
+
+    const batteryJournal = await buildBatteryJournalSummary();
+    signalState.batteryJournalSamples = batteryJournal.sampleCount;
+    signalState.batteryJournalDerived = batteryJournal.derivedFromJournal;
+    signalState.batteryJournalLastSampleAt = batteryJournal.lastSampleAt;
+
+    if (batteryJournal.derivedFromJournal) {
+      Object.assign(metricPatch, batteryJournal.metricPatch);
+    }
+
+    if (batteryJournal.note) {
+      notes.push(batteryJournal.note);
     }
   } catch {
     notes.push('Battery signals were unavailable on this device.');

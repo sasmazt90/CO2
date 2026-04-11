@@ -84,6 +84,14 @@ export const SettingsScreen = () => {
           Status: {liveSignalState.status}
           {liveSignalState.deviceName ? ` - ${liveSignalState.deviceName}` : ''}
         </Text>
+        {liveSignalState.batteryJournalSamples ? (
+          <Text style={styles.body}>
+            Battery journal: {liveSignalState.batteryJournalSamples} samples today
+            {liveSignalState.batteryJournalDerived
+              ? ' | charging metrics are journal-backed'
+              : ''}
+          </Text>
+        ) : null}
         <Pressable onPress={() => navigation.navigate('SignalLab')} style={styles.button}>
           <Text style={styles.buttonText}>Open Signal Lab</Text>
         </Pressable>

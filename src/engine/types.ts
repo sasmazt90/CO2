@@ -196,6 +196,9 @@ export interface LiveSignalState {
   deviceName?: string;
   batteryLevel?: number;
   batteryState?: string;
+  batteryJournalSamples?: number;
+  batteryJournalDerived?: boolean;
+  batteryJournalLastSampleAt?: string;
   currentBrightness?: number;
   stepsToday?: number;
   locationEnabled?: boolean;
