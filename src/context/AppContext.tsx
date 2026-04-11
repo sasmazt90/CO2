@@ -2,7 +2,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 import { challenges } from '../data/challenges';
-import { createBadges, friends } from '../data/friends';
+import {
+  createBadges,
+  getLeaderboardByCohort,
+  jointChallenges,
+  leaderboardEntries,
+} from '../data/friends';
 import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import {
   BadgeDefinition,
@@ -11,6 +16,7 @@ import {
   DailyMetrics,
   FriendScore,
   HistorySnapshot,
+  JointChallenge,
   LiveSignalState,
   NotificationItem,
   PermissionState,
@@ -43,6 +49,12 @@ interface AppContextValue {
   availableChallenges: ChallengeDefinition[];
   badges: BadgeDefinition[];
   friends: FriendScore[];
+  leaderboards: {
+    friends: FriendScore[];
+    regional: FriendScore[];
+    global: FriendScore[];
+  };
+  jointChallenges: JointChallenge[];
   completeOnboarding: (permissions: PermissionState) => Promise<void>;
   toggleChallenge: (challengeId: string) => void;
   syncLiveSignals: () => Promise<void>;
@@ -293,7 +305,13 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       joinedChallenges,
       availableChallenges: challenges,
       badges,
-      friends,
+      friends: getLeaderboardByCohort('friends'),
+      leaderboards: {
+        friends: getLeaderboardByCohort('friends'),
+        regional: getLeaderboardByCohort('regional'),
+        global: getLeaderboardByCohort('global'),
+      },
+      jointChallenges,
       completeOnboarding,
       toggleChallenge,
       syncLiveSignals,
@@ -311,6 +329,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       notificationsEnabled,
       permissions,
       ready,
+      leaderboardEntries,
       streakDays,
       todayBreakdown,
       weeklyAverageScore,

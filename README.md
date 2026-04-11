@@ -12,6 +12,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - Live signal sync for available device readings plus a Signal Lab calibration screen
 - Notification Center fed directly by triggered rules, with local device notification scheduling where supported
 - Local daily history journal with persisted score snapshots and trend rebuilding
+- Segmented social leaderboards, joint challenges, and a shareable weekly card flow
 - Tooltip info system with reference links
 - No external AI APIs
 

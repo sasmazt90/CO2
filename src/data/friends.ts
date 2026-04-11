@@ -1,6 +1,10 @@
-import { BadgeDefinition, FriendScore } from '../engine/types';
+import {
+  BadgeDefinition,
+  FriendScore,
+  JointChallenge,
+} from '../engine/types';
 
-export const friends: FriendScore[] = [
+export const leaderboardEntries: FriendScore[] = [
   {
     id: 'friend-1',
     name: 'Mina',
@@ -8,6 +12,9 @@ export const friends: FriendScore[] = [
     weeklyScore: 89,
     streak: 12,
     sharedBadge: 'Eco Charger Gold',
+    delta: 4,
+    cohort: 'friends',
+    jointChallengeIds: ['joint-eco-charge'],
   },
   {
     id: 'friend-2',
@@ -16,6 +23,9 @@ export const friends: FriendScore[] = [
     weeklyScore: 84,
     streak: 8,
     sharedBadge: 'Green Traveller Silver',
+    delta: 2,
+    cohort: 'friends',
+    jointChallengeIds: ['joint-brightness'],
   },
   {
     id: 'friend-3',
@@ -24,8 +34,97 @@ export const friends: FriendScore[] = [
     weeklyScore: 80,
     streak: 5,
     sharedBadge: 'Brightness Hero Bronze',
+    delta: -1,
+    cohort: 'friends',
+    jointChallengeIds: ['joint-brightness'],
+  },
+  {
+    id: 'regional-1',
+    name: 'Sofia',
+    region: 'Berlin',
+    weeklyScore: 92,
+    streak: 14,
+    sharedBadge: 'Low-Screen-Time Champion',
+    delta: 5,
+    cohort: 'regional',
+  },
+  {
+    id: 'regional-2',
+    name: 'Jonas',
+    region: 'Hamburg',
+    weeklyScore: 87,
+    streak: 10,
+    sharedBadge: 'Calm Leaf Bronze',
+    delta: 3,
+    cohort: 'regional',
+  },
+  {
+    id: 'regional-3',
+    name: 'Aylin',
+    region: 'Munich',
+    weeklyScore: 82,
+    streak: 6,
+    sharedBadge: 'Eco Charger Silver',
+    delta: 1,
+    cohort: 'regional',
+  },
+  {
+    id: 'global-1',
+    name: 'Noah',
+    region: 'Copenhagen',
+    weeklyScore: 95,
+    streak: 18,
+    sharedBadge: 'Green Traveller Silver',
+    delta: 6,
+    cohort: 'global',
+  },
+  {
+    id: 'global-2',
+    name: 'Yuna',
+    region: 'Seoul',
+    weeklyScore: 93,
+    streak: 16,
+    sharedBadge: 'Brightness Hero Bronze',
+    delta: 4,
+    cohort: 'global',
+  },
+  {
+    id: 'global-3',
+    name: 'Leo',
+    region: 'Toronto',
+    weeklyScore: 90,
+    streak: 11,
+    sharedBadge: 'Eco Charger Gold',
+    delta: 3,
+    cohort: 'global',
   },
 ];
+
+export const jointChallenges: JointChallenge[] = [
+  {
+    id: 'joint-eco-charge',
+    challengeId: 'eco-charger',
+    title: 'Eco Charger Circle',
+    friendIds: ['friend-1'],
+    progress: 0.82,
+    targetLabel: '3 shared days with no overcharging',
+    sharedReward: '+60 team CarbonPoints',
+  },
+  {
+    id: 'joint-brightness',
+    challengeId: 'brightness-hero-week',
+    title: 'Brightness Hero Pair',
+    friendIds: ['friend-2', 'friend-3'],
+    progress: 0.61,
+    targetLabel: 'Average brightness under 60% together',
+    sharedReward: 'Unlock a shared social card border',
+  },
+];
+
+export const getLeaderboardByCohort = (cohort: FriendScore['cohort']) =>
+  leaderboardEntries
+    .filter((entry) => entry.cohort === cohort)
+    .sort((left, right) => right.weeklyScore - left.weeklyScore);
 
 export const createBadges = (): BadgeDefinition[] => [
   {

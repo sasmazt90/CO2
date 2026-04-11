@@ -5,6 +5,7 @@ export type RootStackParamList = {
   Badges: undefined;
   SignalLab: undefined;
   NotificationCenter: undefined;
+  ShareCard: undefined;
 };
 
 export type MainTabParamList = {

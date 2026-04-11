@@ -23,6 +23,7 @@ import { MethodScreen } from '../screens/MethodScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { ShareCardScreen } from '../screens/ShareCardScreen';
 import { SignalLabScreen } from '../screens/SignalLabScreen';
 import { MainTabParamList, RootStackParamList } from './types';
 
@@ -113,6 +114,7 @@ export const AppNavigator = () => {
             component={NotificationCenterScreen}
             options={{ title: 'Notification Center' }}
           />
+          <Stack.Screen name="ShareCard" component={ShareCardScreen} options={{ title: 'Share Card' }} />
         </Stack.Navigator>
       ) : (
         <OnboardingScreen />

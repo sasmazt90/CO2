@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BadgeMedal } from '../components/BadgeMedal';
 import { ChallengeCard } from '../components/ChallengeCard';
+import { JointChallengeCard } from '../components/JointChallengeCard';
 import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
@@ -15,7 +16,9 @@ export const ChallengesScreen = () => {
   const {
     availableChallenges,
     badges,
+    friends,
     joinedChallenges,
+    jointChallenges,
     todayMetrics,
     toggleChallenge,
   } = useAppContext();
@@ -47,6 +50,17 @@ export const ChallengesScreen = () => {
         <Text style={styles.note}>
           Bronze, Silver, and Gold badges are powered by the same daily rule engine.
         </Text>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Play together" subtitle="Shared challenge loops with friends" />
+        {jointChallenges.map((challenge) => (
+          <JointChallengeCard
+            key={challenge.id}
+            challenge={challenge}
+            members={friends.filter((friend) => challenge.friendIds.includes(friend.id))}
+          />
+        ))}
       </SurfaceCard>
     </Screen>
   );

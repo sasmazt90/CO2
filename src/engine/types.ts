@@ -184,4 +184,17 @@ export interface FriendScore {
   weeklyScore: number;
   streak: number;
   sharedBadge: string;
+  delta: number;
+  cohort: 'friends' | 'regional' | 'global';
+  jointChallengeIds?: string[];
+}
+
+export interface JointChallenge {
+  id: string;
+  challengeId: string;
+  title: string;
+  friendIds: string[];
+  progress: number;
+  targetLabel: string;
+  sharedReward: string;
 }

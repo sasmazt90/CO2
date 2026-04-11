@@ -20,11 +20,15 @@ export const FriendCard = ({
         <Text style={styles.rank}>#{index + 1}</Text>
         <Text style={styles.name}>{friend.name}</Text>
         <Text style={styles.meta}>
-          {friend.region} • {friend.sharedBadge}
+          {friend.region} - {friend.sharedBadge}
         </Text>
       </View>
       <View style={styles.scoreWrap}>
         <Text style={styles.score}>{friend.weeklyScore}</Text>
+        <Text style={styles.delta}>
+          {friend.delta >= 0 ? '+' : ''}
+          {friend.delta} this week
+        </Text>
         <Text style={styles.meta}>{friend.streak} day streak</Text>
       </View>
     </View>
@@ -61,5 +65,11 @@ const styles = StyleSheet.create({
     color: colors.forestInk,
     fontFamily: typography.numbers,
     fontSize: 28,
+  },
+  delta: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+    marginTop: spacing.xxs,
   },
 });
