@@ -6,8 +6,9 @@ import {
   TriggeredRule,
 } from './types';
 
-const SCORE_BASELINE = 78;
-const KG_PER_NEGATIVE_IMPACT = 0.018;
+export const SCORE_BASELINE = 78;
+export const KG_PER_NEGATIVE_IMPACT = 0.018;
+export const KG_PER_POSITIVE_IMPACT = 0.004;
 
 const sortPositive = (rules: TriggeredRule[]) =>
   [...rules].sort((left, right) => right.scoreImpact - left.scoreImpact);
@@ -54,7 +55,13 @@ export const evaluateCarbonScore = (metrics: DailyMetrics): CarbonScoreBreakdown
 
   const estimatedKgCo2 = Math.max(
     0.04,
-    Number((0.14 + totalNegative * KG_PER_NEGATIVE_IMPACT - totalPositive * 0.004).toFixed(2)),
+    Number(
+      (
+        0.14 +
+        totalNegative * KG_PER_NEGATIVE_IMPACT -
+        totalPositive * KG_PER_POSITIVE_IMPACT
+      ).toFixed(2),
+    ),
   );
 
   const grouped = new Map<string, number>();
