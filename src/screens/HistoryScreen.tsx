@@ -9,31 +9,53 @@ import { useAppContext } from '../context/AppContext';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+import { formatKgCo2, monthDayLabel } from '../utils/formatters';
 
 type RangeMode = 'weekly' | 'monthly';
 
 export const HistoryScreen = () => {
-  const { breakdownHistory } = useAppContext();
+  const { breakdownHistory, weeklyAverageScore } = useAppContext();
   const [range, setRange] = useState<RangeMode>('weekly');
 
   const weeklyTrend = useMemo(
     () =>
-      breakdownHistory.map((item) => ({
+      breakdownHistory.slice(-7).map((item) => ({
         date: item.breakdown.date,
         value: item.breakdown.score,
       })),
     [breakdownHistory],
   );
 
-  const monthlyTrend = [
-    { date: '2026-03-14', value: 64 },
-    { date: '2026-03-21', value: 69 },
-    { date: '2026-03-28', value: 73 },
-    { date: '2026-04-04', value: 78 },
-  ];
+  const monthlyTrend = useMemo(() => {
+    const lastTwentyEight = breakdownHistory.slice(-28);
+    if (lastTwentyEight.length < 8) {
+      return weeklyTrend;
+    }
+
+    const buckets: { date: string; value: number }[] = [];
+    for (let index = 0; index < lastTwentyEight.length; index += 7) {
+      const slice = lastTwentyEight.slice(index, index + 7);
+      buckets.push({
+        date: slice[slice.length - 1].breakdown.date,
+        value: Math.round(
+          slice.reduce((sum, item) => sum + item.breakdown.score, 0) / slice.length,
+        ),
+      });
+    }
+
+    return buckets;
+  }, [breakdownHistory, weeklyTrend]);
 
   const activeTrend = range === 'weekly' ? weeklyTrend : monthlyTrend;
-  const delta = activeTrend[activeTrend.length - 1].value - activeTrend[0].value;
+  const delta =
+    activeTrend.length > 1
+      ? activeTrend[activeTrend.length - 1].value - activeTrend[0].value
+      : 0;
+
+  const recentEntries = useMemo(
+    () => [...breakdownHistory].reverse().slice(0, 7),
+    [breakdownHistory],
+  );
 
   return (
     <Screen>
@@ -57,14 +79,34 @@ export const HistoryScreen = () => {
           {delta >= 0 ? '+' : ''}
           {delta} points from the start of this {range}.
         </Text>
+        <Text style={styles.caption}>Current 7-day average: {weeklyAverageScore}</Text>
       </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle title="Improvement highlights" subtitle="Signals that moved in a greener direction" />
+        <SectionTitle title="Daily journal" subtitle="Saved local snapshots with the strongest daily signal" />
         <View style={styles.list}>
-          <Text style={styles.item}>Brightness stayed efficient on 3 of the last 7 days.</Text>
-          <Text style={styles.item}>Overcharging dropped to 0 minutes on the last 5 days.</Text>
-          <Text style={styles.item}>Low-signal radio time fell sharply compared with the start of the period.</Text>
+          {recentEntries.map((entry) => {
+            const topSignal =
+              entry.breakdown.topImprovementAreas[0]?.category ??
+              entry.breakdown.topPositive[0]?.category ??
+              'Steady signals';
+
+            return (
+              <View key={entry.breakdown.date} style={styles.journalRow}>
+                <View style={styles.journalCopy}>
+                  <Text style={styles.journalDate}>{monthDayLabel(entry.breakdown.date)}</Text>
+                  <Text style={styles.item}>{topSignal}</Text>
+                  <Text style={styles.journalMeta}>{entry.breakdown.primaryInsight}</Text>
+                </View>
+                <View style={styles.journalScoreWrap}>
+                  <Text style={styles.journalScore}>{entry.breakdown.score}</Text>
+                  <Text style={styles.journalKg}>
+                    {formatKgCo2(entry.breakdown.estimatedKgCo2)}
+                  </Text>
+                </View>
+              </View>
+            );
+          })}
         </View>
       </SurfaceCard>
     </Screen>
@@ -100,6 +142,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
   },
+  caption: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    marginTop: spacing.xs,
+  },
   list: {
     gap: spacing.sm,
   },
@@ -108,5 +156,42 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 19,
+  },
+  journalRow: {
+    borderTopColor: 'rgba(160,167,162,0.1)',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: spacing.sm,
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+  },
+  journalCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  journalDate: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+  },
+  journalMeta: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  journalScoreWrap: {
+    alignItems: 'flex-end',
+    minWidth: 72,
+  },
+  journalScore: {
+    color: colors.forestInk,
+    fontFamily: typography.numbers,
+    fontSize: 24,
+  },
+  journalKg: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 11,
   },
 });

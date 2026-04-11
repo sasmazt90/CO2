@@ -121,6 +121,11 @@ export interface CarbonScoreBreakdown {
   primaryInsight: string;
 }
 
+export interface HistorySnapshot {
+  metrics: DailyMetrics;
+  savedAt: string;
+}
+
 export interface PermissionState {
   screenTime: boolean;
   motion: boolean;

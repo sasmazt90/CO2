@@ -1,5 +1,6 @@
 import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import { DailyMetrics } from '../engine/types';
+import { getLocalISODate, shiftISODate } from '../utils/date';
 
 const baseMetrics: Omit<DailyMetrics, 'date'> = {
   avgBrightness: 0.56,
@@ -67,8 +68,10 @@ const createMetrics = (date: string, overrides: Partial<Omit<DailyMetrics, 'date
   ...overrides,
 });
 
+const todayISO = getLocalISODate();
+
 export const weeklyMetrics: DailyMetrics[] = [
-  createMetrics('2026-04-04', {
+  createMetrics(shiftISODate(todayISO, -6), {
     avgBrightness: 0.84,
     screenTime: 214,
     idleScreenOn: 28,
@@ -107,7 +110,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     arAppUsage: 7,
     radioHighPowerTime: 62,
   }),
-  createMetrics('2026-04-05', {
+  createMetrics(shiftISODate(todayISO, -5), {
     screenTime: 176,
     avgBrightness: 0.71,
     btOnTime: 1.4,
@@ -119,7 +122,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     steps: 5900,
     timeAt100WhilePlugged: 0,
   }),
-  createMetrics('2026-04-06', {
+  createMetrics(shiftISODate(todayISO, -4), {
     avgBrightness: 0.48,
     screenTime: 88,
     btOnTime: 1.2,
@@ -131,7 +134,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     timeAt100WhilePlugged: 0,
     avgMusicVolume: 0.36,
   }),
-  createMetrics('2026-04-07', {
+  createMetrics(shiftISODate(todayISO, -3), {
     screenTime: 144,
     avgBrightness: 0.62,
     mobileDataUsage: 210,
@@ -141,7 +144,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     chargeSessions: 3,
     backgroundActiveApps: 6,
   }),
-  createMetrics('2026-04-08', {
+  createMetrics(shiftISODate(todayISO, -2), {
     avgBrightness: 0.46,
     screenTime: 82,
     btOnTime: 0.8,
@@ -154,7 +157,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     timeAt100WhilePlugged: 0,
     lowSignalTime: 0,
   }),
-  createMetrics('2026-04-09', {
+  createMetrics(shiftISODate(todayISO, -1), {
     screenTime: 138,
     avgBrightness: 0.58,
     mobileDataUsage: 154,
@@ -164,7 +167,7 @@ export const weeklyMetrics: DailyMetrics[] = [
     callCount: 7,
     backgroundComputeTime: 38,
   }),
-  createMetrics('2026-04-10', {
+  createMetrics(todayISO, {
     avgBrightness: 0.49,
     screenTime: 94,
     btOnTime: 1.8,
@@ -185,3 +188,4 @@ export const breakdownHistory = weeklyMetrics.map((metrics) => ({
 
 export const todayMetrics = weeklyMetrics[weeklyMetrics.length - 1];
 export const todayBreakdown = breakdownHistory[breakdownHistory.length - 1].breakdown;
+export const baseTodayMetrics = todayMetrics;

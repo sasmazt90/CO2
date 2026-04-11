@@ -3,27 +3,36 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 
 import { challenges } from '../data/challenges';
 import { createBadges, friends } from '../data/friends';
-import { breakdownHistory, todayMetrics } from '../data/mockMetrics';
 import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import {
   BadgeDefinition,
   CarbonScoreBreakdown,
   ChallengeDefinition,
+  DailyMetrics,
   FriendScore,
+  HistorySnapshot,
   LiveSignalState,
   NotificationItem,
   PermissionState,
 } from '../engine/types';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
+import {
+  buildHistoryBreakdowns,
+  createSeedHistory,
+  createTodayMetricSeed,
+  loadHistorySnapshots,
+  saveHistorySnapshots,
+  upsertTodaySnapshot,
+} from '../services/historyService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 
 interface AppContextValue {
   ready: boolean;
   hasCompletedOnboarding: boolean;
   permissions: PermissionState;
-  breakdownHistory: { metrics: typeof todayMetrics; breakdown: CarbonScoreBreakdown }[];
+  breakdownHistory: { metrics: DailyMetrics; breakdown: CarbonScoreBreakdown }[];
   todayBreakdown: CarbonScoreBreakdown;
-  todayMetrics: typeof todayMetrics;
+  todayMetrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
@@ -37,7 +46,7 @@ interface AppContextValue {
   completeOnboarding: (permissions: PermissionState) => Promise<void>;
   toggleChallenge: (challengeId: string) => void;
   syncLiveSignals: () => Promise<void>;
-  updateTodayMetricPatch: (patch: Partial<typeof todayMetrics>) => void;
+  updateTodayMetricPatch: (patch: Partial<DailyMetrics>) => void;
   markNotificationRead: (notificationId: string) => void;
 }
 
@@ -65,14 +74,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     status: 'idle',
     notes: ['Live signals have not been synced yet.'],
   });
-  const [currentTodayMetrics, setCurrentTodayMetrics] = useState(todayMetrics);
+  const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
+  const [currentTodayMetrics, setCurrentTodayMetrics] = useState<DailyMetrics>(createTodayMetricSeed());
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     const loadState = async () => {
       try {
-        const value = await AsyncStorage.getItem(STORAGE_KEY);
+        const [value, loadedHistorySnapshots] = await Promise.all([
+          AsyncStorage.getItem(STORAGE_KEY),
+          loadHistorySnapshots(),
+        ]);
         if (value) {
           const parsed = JSON.parse(value) as {
             hasCompletedOnboarding: boolean;
@@ -83,6 +96,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           setPermissions(parsed.permissions);
           setJoinedChallenges(parsed.joinedChallenges);
         }
+
+        const todaySeed = createTodayMetricSeed();
+        const existingTodaySnapshot = loadedHistorySnapshots.find(
+          (item) => item.metrics.date === todaySeed.date,
+        );
+        const nextTodayMetrics = existingTodaySnapshot?.metrics ?? todaySeed;
+        const nextHistorySnapshots = upsertTodaySnapshot(
+          loadedHistorySnapshots.length > 0 ? loadedHistorySnapshots : createSeedHistory(),
+          nextTodayMetrics,
+        );
+
+        setCurrentTodayMetrics(nextTodayMetrics);
+        setHistorySnapshots(nextHistorySnapshots);
+        await saveHistorySnapshots(nextHistorySnapshots);
       } finally {
         setReady(true);
       }
@@ -105,6 +132,22 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextValue));
   };
 
+  const applyTodayMetrics = (updater: DailyMetrics | ((current: DailyMetrics) => DailyMetrics)) => {
+    setCurrentTodayMetrics((current) => {
+      const nextMetrics = typeof updater === 'function' ? updater(current) : updater;
+
+      setHistorySnapshots((currentSnapshots) => {
+        const baseSnapshots =
+          currentSnapshots.length > 0 ? currentSnapshots : createSeedHistory();
+        const nextSnapshots = upsertTodaySnapshot(baseSnapshots, nextMetrics);
+        void saveHistorySnapshots(nextSnapshots);
+        return nextSnapshots;
+      });
+
+      return nextMetrics;
+    });
+  };
+
   const completeOnboarding = async (nextPermissions: PermissionState) => {
     setHasCompletedOnboarding(true);
     setPermissions(nextPermissions);
@@ -116,7 +159,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const { metricPatch, signalState } = await collectDeviceSignalPatch(nextPermissions);
-    setCurrentTodayMetrics((current) => ({ ...current, ...metricPatch }));
+    applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
     setLiveSignalState(signalState);
     if (nextPermissions.notifications) {
       setNotificationsEnabled(true);
@@ -141,7 +184,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     setLiveSignalState((current) => ({ ...current, status: 'syncing', notes: ['Syncing device signals...'] }));
     try {
       const { metricPatch, signalState } = await collectDeviceSignalPatch(permissions);
-      setCurrentTodayMetrics((current) => ({ ...current, ...metricPatch }));
+      applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
       setLiveSignalState(signalState);
     } catch {
       setLiveSignalState({
@@ -152,8 +195,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  const updateTodayMetricPatch = (patch: Partial<typeof todayMetrics>) => {
-    setCurrentTodayMetrics((current) => ({ ...current, ...patch }));
+  const updateTodayMetricPatch = (patch: Partial<DailyMetrics>) => {
+    applyTodayMetrics((current) => ({ ...current, ...patch }));
   };
 
   const markNotificationRead = (notificationId: string) => {
@@ -167,6 +210,11 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const todayBreakdown = useMemo(
     () => evaluateCarbonScore(currentTodayMetrics),
     [currentTodayMetrics],
+  );
+
+  const breakdownHistory = useMemo(
+    () => buildHistoryBreakdowns(historySnapshots),
+    [historySnapshots],
   );
 
   useEffect(() => {
@@ -183,15 +231,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   }, [permissions.notifications, todayBreakdown]);
 
   const weeklyAverageScore = useMemo(
-    () =>
-      Math.round(
-        (breakdownHistory
-          .slice(0, -1)
-          .reduce((sum, item) => sum + item.breakdown.score, 0) +
-          todayBreakdown.score) /
-          breakdownHistory.length,
-      ),
-    [todayBreakdown.score],
+    () => {
+      const lastSeven = breakdownHistory.slice(-7);
+      if (lastSeven.length === 0) {
+        return todayBreakdown.score;
+      }
+
+      return Math.round(
+        lastSeven.reduce((sum, item) => sum + item.breakdown.score, 0) /
+          lastSeven.length,
+      );
+    },
+    [breakdownHistory, todayBreakdown.score],
   );
 
   const carbonPoints = useMemo(
@@ -203,12 +254,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const streakDays = useMemo(
-    () =>
-      breakdownHistory.reduce(
-        (count, item) => count + (item.breakdown.score >= weeklyAverageScore ? 1 : 0),
-        0,
-      ),
-    [weeklyAverageScore],
+    () => {
+      let streak = 0;
+      const reversed = [...breakdownHistory].reverse();
+
+      for (const item of reversed) {
+        if (item.breakdown.score >= weeklyAverageScore) {
+          streak += 1;
+        } else {
+          break;
+        }
+      }
+
+      return streak;
+    },
+    [breakdownHistory, weeklyAverageScore],
   );
 
   const badges = useMemo(

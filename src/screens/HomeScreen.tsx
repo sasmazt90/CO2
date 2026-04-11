@@ -26,7 +26,7 @@ export const HomeScreen = () => {
     notificationFeed,
     syncLiveSignals,
   } = useAppContext();
-  const trendData = breakdownHistory.map((item) => ({
+  const trendData = breakdownHistory.slice(-7).map((item) => ({
     date: item.breakdown.date,
     value: item.breakdown.score,
   }));
