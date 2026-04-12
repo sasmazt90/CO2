@@ -172,6 +172,14 @@ const buildStatus = ({
 
   switch (key) {
     case 'avgBrightness':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Brightness is being filled from the user-confirmed device profile.',
+        };
+      }
+
       return liveSignalState.currentBrightness !== undefined
         ? {
             status: 'live',
@@ -216,6 +224,14 @@ const buildStatus = ({
       };
 
     case 'steps':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Movement is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.stepsToday !== undefined) {
         return {
           status: 'live',
@@ -330,11 +346,11 @@ const buildStatus = ({
     case 'heavyAppOpens':
     case 'unusedAppsCount':
     case 'notificationsPerDay':
-      if (key === 'notificationsPerDay' && isUserConfirmed && !hasNativeMetric) {
+      if (isUserConfirmed) {
         return {
           status: 'user-confirmed',
           sourceLabel: 'device profile',
-          summary: 'Notification load is being filled from the user-confirmed device profile.',
+          summary: 'This usage metric is being filled from the user-confirmed device profile.',
         };
       }
 
@@ -363,6 +379,14 @@ const buildStatus = ({
     case 'timeAt100WhilePlugged':
     case 'chargingBetween00_06':
     case 'chargeSessions':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This charging metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.batteryJournalDerived) {
         return {
           status: 'journal-backed',
@@ -387,6 +411,14 @@ const buildStatus = ({
 
     case 'timeBelow20':
     case 'timeAbove80':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Battery range time is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.batteryJournalDerived) {
         return {
           status: 'journal-backed',
@@ -724,11 +756,11 @@ const buildStatus = ({
     case 'duplicateMedia':
     case 'compressionTasks':
     case 'proximityActiveTime':
-      if (isUserConfirmed && key === 'proximityActiveTime') {
+      if (isUserConfirmed) {
         return {
           status: 'user-confirmed',
           sourceLabel: 'device profile',
-          summary: 'Proximity sensor activity is being filled from the user-confirmed device profile.',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
         };
       }
 
@@ -798,6 +830,14 @@ const buildStatus = ({
       };
 
     case 'fastChargeSessions':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Fast-charge behavior is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.batteryJournalDerived || liveSignalState.batteryLevel !== undefined) {
         return {
           status: 'derived',

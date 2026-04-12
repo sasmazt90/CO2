@@ -12,6 +12,8 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 type SliderControlKey =
+  | 'avgBrightness'
+  | 'idleScreenOn'
   | 'backgroundActiveApps'
   | 'backgroundComputeTime'
   | 'btOnTime'
@@ -19,6 +21,12 @@ type SliderControlKey =
   | 'avgTemp'
   | 'cpuHighUsage'
   | 'cloudSyncSessions'
+  | 'steps'
+  | 'socialMediaTime'
+  | 'videoStreamingTime'
+  | 'mobileDataUsage'
+  | 'heavyAppOpens'
+  | 'unusedAppsCount'
   | 'mobileUpdatesData'
   | 'multiDeviceSyncEvents'
   | 'backupRunsPerDay'
@@ -40,6 +48,14 @@ type SliderControlKey =
   | 'gyroActiveApps'
   | 'proximityActiveTime'
   | 'faceIDUnlocks'
+  | 'duplicateMedia'
+  | 'compressionTasks'
+  | 'timeAt100WhilePlugged'
+  | 'chargingBetween00_06'
+  | 'chargeSessions'
+  | 'fastChargeSessions'
+  | 'timeBelow20'
+  | 'timeAbove80'
   | 'notificationsPerDay';
 
 type ToggleControlKey = 'liveWallpaperEnabled' | 'recorded4KVideo';
@@ -56,6 +72,8 @@ type SliderControl = {
 };
 
 const visualControls: SliderControl[] = [
+  { key: 'avgBrightness', label: 'Typical brightness', min: 0, max: 1, step: 0.05, suffix: '' },
+  { key: 'idleScreenOn', label: 'Idle screen-on time', min: 0, max: 60, step: 1, suffix: ' min' },
   { key: 'widgetCount', label: 'Widgets', min: 0, max: 10, step: 1, suffix: '' },
 ];
 
@@ -87,6 +105,12 @@ const audioControls: SliderControl[] = [
 ];
 
 const cloudControls: SliderControl[] = [
+  { key: 'steps', label: 'Typical step count', min: 0, max: 15000, step: 250, suffix: '' },
+  { key: 'socialMediaTime', label: 'Social media time', min: 0, max: 360, step: 5, suffix: ' min' },
+  { key: 'videoStreamingTime', label: 'Video streaming time', min: 0, max: 360, step: 5, suffix: ' min' },
+  { key: 'mobileDataUsage', label: 'Mobile data usage', min: 0, max: 2000, step: 25, suffix: ' MB' },
+  { key: 'heavyAppOpens', label: 'Heavy app opens', min: 0, max: 30, step: 1, suffix: '' },
+  { key: 'unusedAppsCount', label: 'Unused apps count', min: 0, max: 30, step: 1, suffix: '' },
   { key: 'notificationsPerDay', label: 'Typical notification load', min: 0, max: 240, step: 5, suffix: ' / day' },
   { key: 'cloudSyncSessions', label: 'Cloud sync sessions', min: 0, max: 8, step: 1, suffix: '' },
   { key: 'mobileUpdatesData', label: 'Updates over mobile', min: 0, max: 500, step: 10, suffix: ' MB' },
@@ -100,10 +124,25 @@ const sensorControls: SliderControl[] = [
   { key: 'gyroActiveApps', label: 'Gyro-heavy app sessions', min: 0, max: 12, step: 1, suffix: '' },
   { key: 'proximityActiveTime', label: 'Proximity active time', min: 0, max: 120, step: 5, suffix: ' min' },
   { key: 'faceIDUnlocks', label: 'Biometric unlock count', min: 0, max: 150, step: 1, suffix: '' },
+  { key: 'duplicateMedia', label: 'Duplicate media items', min: 0, max: 300, step: 5, suffix: '' },
+  { key: 'compressionTasks', label: 'Compression tasks', min: 0, max: 20, step: 1, suffix: '' },
+];
+
+const chargingControls: SliderControl[] = [
+  { key: 'timeAt100WhilePlugged', label: 'Time at 100% while plugged', min: 0, max: 240, step: 5, suffix: ' min' },
+  { key: 'chargingBetween00_06', label: 'Charging between 00:00-06:00', min: 0, max: 360, step: 5, suffix: ' min' },
+  { key: 'chargeSessions', label: 'Charge sessions', min: 0, max: 8, step: 1, suffix: '' },
+  { key: 'fastChargeSessions', label: 'Fast charge sessions', min: 0, max: 6, step: 1, suffix: '' },
+  { key: 'timeBelow20', label: 'Time below 20%', min: 0, max: 300, step: 5, suffix: ' min' },
+  { key: 'timeAbove80', label: 'Time above 80%', min: 0, max: 300, step: 5, suffix: ' min' },
 ];
 
 const formatSliderValue = (key: SliderControlKey, value: number, suffix: string) => {
   if (key === 'avgMusicVolume') {
+    return `${Math.round(value * 100)}%`;
+  }
+
+  if (key === 'avgBrightness') {
     return `${Math.round(value * 100)}%`;
   }
 
@@ -116,11 +155,19 @@ export const DeviceProfileScreen = () => {
   const [draft, setDraft] = useState<Partial<DailyMetrics>>({
     backgroundActiveApps: todayMetrics.backgroundActiveApps,
     backgroundComputeTime: todayMetrics.backgroundComputeTime,
+    avgBrightness: todayMetrics.avgBrightness,
     avgTemp: todayMetrics.avgTemp,
+    idleScreenOn: todayMetrics.idleScreenOn,
     btOnTime: todayMetrics.btOnTime,
     btActiveDevices: todayMetrics.btActiveDevices,
     cpuHighUsage: todayMetrics.cpuHighUsage,
     cloudSyncSessions: todayMetrics.cloudSyncSessions,
+    steps: todayMetrics.steps,
+    socialMediaTime: todayMetrics.socialMediaTime,
+    videoStreamingTime: todayMetrics.videoStreamingTime,
+    mobileDataUsage: todayMetrics.mobileDataUsage,
+    heavyAppOpens: todayMetrics.heavyAppOpens,
+    unusedAppsCount: todayMetrics.unusedAppsCount,
     mobileUpdatesData: todayMetrics.mobileUpdatesData,
     multiDeviceSyncEvents: todayMetrics.multiDeviceSyncEvents,
     backupRunsPerDay: todayMetrics.backupRunsPerDay,
@@ -144,6 +191,14 @@ export const DeviceProfileScreen = () => {
     gyroActiveApps: todayMetrics.gyroActiveApps,
     proximityActiveTime: todayMetrics.proximityActiveTime,
     faceIDUnlocks: todayMetrics.faceIDUnlocks,
+    duplicateMedia: todayMetrics.duplicateMedia,
+    compressionTasks: todayMetrics.compressionTasks,
+    timeAt100WhilePlugged: todayMetrics.timeAt100WhilePlugged,
+    chargingBetween00_06: todayMetrics.chargingBetween00_06,
+    chargeSessions: todayMetrics.chargeSessions,
+    fastChargeSessions: todayMetrics.fastChargeSessions,
+    timeBelow20: todayMetrics.timeBelow20,
+    timeAbove80: todayMetrics.timeAbove80,
     notificationsPerDay: todayMetrics.notificationsPerDay,
     ...deviceProfile.patch,
   });
@@ -226,6 +281,11 @@ export const DeviceProfileScreen = () => {
       <SurfaceCard>
         <SectionTitle title="Cloud habits" subtitle="Daily network defaults you can confirm" />
         {cloudControls.map(renderSlider)}
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Charging habits" subtitle="Manual completion for battery cadence" />
+        {chargingControls.map(renderSlider)}
       </SurfaceCard>
 
       <SurfaceCard>
