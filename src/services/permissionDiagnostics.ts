@@ -7,21 +7,49 @@ import {
   PermissionDiagnostic,
   PermissionState,
 } from '../engine/types';
+import { getNativeAppUsageBridgeStatus } from './appUsageCollector';
 
 const screenTimeDiagnostic = (
   selected: boolean,
-): PermissionDiagnostic => ({
-  id: 'screenTime',
-  title: 'Screen time data',
-  status: selected ? 'native-required' : 'pending',
-  summary: selected
-    ? 'Exact OS screen-time access needs platform-specific native integration, while a local app-session fallback can still run.'
-    : 'Not requested yet.',
-  detail: selected
-    ? 'This Expo build can already journal in-app foreground sessions, but exact per-app and total device screen-time history still needs native iOS and Android collectors.'
-    : 'Enable this if you want the app to prepare for a deeper native screen-time integration later.',
-  actionLabel: selected ? 'Native module needed' : 'Enable in onboarding',
-});
+): PermissionDiagnostic => {
+  const bridgeStatus = getNativeAppUsageBridgeStatus();
+
+  if (!selected) {
+    return {
+      id: 'screenTime',
+      title: 'Screen time data',
+      status: 'pending',
+      summary: 'Not requested yet.',
+      detail:
+        'Enable this if you want the app to prepare for a deeper native screen-time integration later.',
+      actionLabel: 'Enable in onboarding',
+    };
+  }
+
+  if (bridgeStatus.installed) {
+    return {
+      id: 'screenTime',
+      title: 'Screen time data',
+      status: 'available',
+      summary:
+        'A native app-usage bridge is installed, so device-wide usage snapshots can flow into the score engine.',
+      detail:
+        'The local app-session journal remains available as a fallback, while the native bridge can supply broader daily usage totals and category summaries.',
+      actionLabel: 'Bridge ready',
+    };
+  }
+
+  return {
+    id: 'screenTime',
+    title: 'Screen time data',
+    status: 'native-required',
+    summary:
+      'Exact OS screen-time access still needs platform-specific native integration, while a local app-session fallback can already run.',
+    detail:
+      'This Expo build can journal in-app foreground sessions today, and it is ready to accept a native usage bridge later for broader daily totals.',
+    actionLabel: 'Native module needed',
+  };
+};
 
 const motionDiagnostic = async (
   selected: boolean,

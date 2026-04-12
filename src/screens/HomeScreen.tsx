@@ -31,6 +31,12 @@ export const HomeScreen = () => {
   const coverageSummary = summarizeCollectorCoverage(collectorCapabilities);
   const liveCollectors = coverageSummary.byStatus.live.familyCount;
   const nativeCollectors = coverageSummary.byStatus['native-required'].familyCount;
+  const appUsageSourceLabel =
+    liveSignalState.appUsageSource === 'native-module'
+      ? 'Native usage bridge'
+      : liveSignalState.appUsageSource === 'app-session-journal'
+        ? 'App session journal'
+        : 'Seeded estimates';
   const trendData = breakdownHistory.slice(-7).map((item) => ({
     date: item.breakdown.date,
     value: item.breakdown.score,
@@ -67,6 +73,10 @@ export const HomeScreen = () => {
         <Text style={styles.signalCopy}>
           {liveSignalState.notes[0] ??
             "Use live sync to pull available device signals into today's score."}
+        </Text>
+        <Text style={styles.signalMeta}>
+          App usage source: {appUsageSourceLabel}
+          {liveSignalState.appUsageSupportsCategories ? ' | category metrics are live' : ''}
         </Text>
         <Pressable onPress={() => void syncLiveSignals()} style={styles.syncButton}>
           <Text style={styles.syncButtonText}>
@@ -187,6 +197,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 18,
+  },
+  signalMeta: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 17,
   },
   syncButton: {
     alignSelf: 'flex-start',

@@ -157,6 +157,11 @@ export type CollectorCapabilityStatus =
   | 'blocked'
   | 'unavailable';
 
+export type AppUsageSource =
+  | 'native-module'
+  | 'app-session-journal'
+  | 'estimated';
+
 export type CollectorCapabilityId =
   | 'screen-time'
   | 'brightness-display'
@@ -194,6 +199,10 @@ export interface LiveSignalState {
   status: 'idle' | 'syncing' | 'ready' | 'error';
   notes: string[];
   deviceName?: string;
+  appUsageSource?: AppUsageSource;
+  appUsageObservedAppsCount?: number;
+  appUsageLastSyncAt?: string;
+  appUsageSupportsCategories?: boolean;
   appSessionMinutes?: number;
   appSessionCount?: number;
   appSessionDerived?: boolean;

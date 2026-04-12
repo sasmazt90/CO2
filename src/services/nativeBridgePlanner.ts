@@ -1,4 +1,7 @@
+import { Platform } from 'react-native';
+
 import { CollectorCapability, CollectorCapabilityId } from '../engine/types';
+import { getNativeAppUsageBridgeStatus } from './appUsageCollector';
 
 export type BridgePriority = 'High' | 'Medium' | 'Low';
 export type NativeBridgePlatform = 'iOS' | 'Android';
@@ -346,10 +349,33 @@ const bridgePlanConfig: Record<
 
 export const buildNativeBridgePlans = (
   collectorCapabilities: CollectorCapability[],
-): NativeBridgePlan[] =>
-  collectorCapabilities
+): NativeBridgePlan[] => {
+  const bridgeStatus = getNativeAppUsageBridgeStatus();
+  const activePlatform =
+    Platform.OS === 'ios'
+      ? 'iOS'
+      : Platform.OS === 'android'
+        ? 'Android'
+        : null;
+
+  return collectorCapabilities
     .map((capability) => {
       const config = bridgePlanConfig[capability.id];
+      const platforms =
+        capability.id === 'screen-time' && bridgeStatus.installed && activePlatform
+          ? config.platforms.map((platform) =>
+              platform.platform === activePlatform
+                ? {
+                    ...platform,
+                    status: 'live' as const,
+                    summary:
+                      'A native app-usage bridge is installed on this platform, so shared scoring can ingest device-wide usage snapshots now.',
+                    implementation:
+                      'Keep the shared usage contract stable and let the in-app journal remain as a local fallback when native data is sparse.',
+                  }
+                : platform,
+            )
+          : config.platforms;
 
       return {
         collectorId: capability.id,
@@ -358,6 +384,7 @@ export const buildNativeBridgePlans = (
         outcomeCount: capability.coverage.outcomeCount,
         currentStatus: capability.status,
         ...config,
+        platforms,
       };
     })
     .sort((left, right) => {
@@ -369,6 +396,7 @@ export const buildNativeBridgePlans = (
 
       return right.outcomeCount - left.outcomeCount;
     });
+};
 
 export const summarizeNativeBridgePlans = (plans: NativeBridgePlan[]) => ({
   highPriorityFamilies: plans.filter((plan) => plan.priority === 'High').length,

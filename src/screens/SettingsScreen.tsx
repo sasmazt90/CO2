@@ -26,6 +26,12 @@ export const SettingsScreen = () => {
   const blockedCollectors =
     coverageSummary.byStatus.blocked.familyCount +
     coverageSummary.byStatus.unavailable.familyCount;
+  const appUsageSourceLabel =
+    liveSignalState.appUsageSource === 'native-module'
+      ? 'Native usage bridge'
+      : liveSignalState.appUsageSource === 'app-session-journal'
+        ? 'App session journal'
+        : 'Seeded estimates';
 
   return (
     <Screen>
@@ -83,6 +89,10 @@ export const SettingsScreen = () => {
         <Text style={styles.body}>
           Status: {liveSignalState.status}
           {liveSignalState.deviceName ? ` - ${liveSignalState.deviceName}` : ''}
+        </Text>
+        <Text style={styles.body}>
+          App usage source: {appUsageSourceLabel}
+          {liveSignalState.appUsageSupportsCategories ? ' | category metrics are available' : ''}
         </Text>
         {liveSignalState.appSessionCount ? (
           <Text style={styles.body}>

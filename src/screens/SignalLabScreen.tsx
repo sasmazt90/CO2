@@ -103,6 +103,12 @@ export const SignalLabScreen = () => {
     todayMetrics,
     updateTodayMetricPatch,
   } = useAppContext();
+  const appUsageSourceLabel =
+    liveSignalState.appUsageSource === 'native-module'
+      ? 'Native usage bridge'
+      : liveSignalState.appUsageSource === 'app-session-journal'
+        ? 'App session journal'
+        : 'Seeded estimates';
 
   return (
     <Screen>
@@ -117,8 +123,14 @@ export const SignalLabScreen = () => {
           </Text>
         </Pressable>
         {liveSignalState.syncedAt ? (
-          <Text style={styles.caption}>Last synced: {new Date(liveSignalState.syncedAt).toLocaleString()}</Text>
+          <Text style={styles.caption}>
+            Last synced: {new Date(liveSignalState.syncedAt).toLocaleString()}
+          </Text>
         ) : null}
+        <Text style={styles.caption}>
+          App usage source: {appUsageSourceLabel}
+          {liveSignalState.appUsageSupportsCategories ? ' - category metrics are live' : ''}
+        </Text>
         {liveSignalState.appSessionCount ? (
           <Text style={styles.caption}>
             App session journal: {liveSignalState.appSessionMinutes ?? 0} minutes across{' '}
@@ -134,7 +146,7 @@ export const SignalLabScreen = () => {
         ) : null}
         {liveSignalState.notes.map((note) => (
           <Text key={note} style={styles.note}>
-            • {note}
+            - {note}
           </Text>
         ))}
       </SurfaceCard>

@@ -26,6 +26,7 @@ import {
   buildBatteryJournalSummary,
   startBatteryJournalListeners,
 } from '../services/batteryJournalService';
+import { collectAppUsageSignals } from '../services/appUsageCollector';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 import { buildCollectorCapabilities } from '../services/collectorCapabilities';
 import {
@@ -38,10 +39,7 @@ import {
 } from '../services/historyService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
-import {
-  buildScreenTimeJournalSummary,
-  startScreenTimeJournalListeners,
-} from '../services/screenTimeJournalService';
+import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
 
 interface AppContextValue {
   ready: boolean;
@@ -77,6 +75,11 @@ interface AppContextValue {
 }
 
 const STORAGE_KEY = 'digital-carbon-footprint-score/app-state';
+const APP_USAGE_NOTE_PREFIXES = [
+  'Native app usage bridge',
+  'App session journal',
+  'App usage is still on calm seeded estimates',
+];
 
 const defaultPermissions: PermissionState = {
   screenTime: true,
@@ -86,6 +89,22 @@ const defaultPermissions: PermissionState = {
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
+
+const mergeNotes = (preferred: string[], existing: string[]) => {
+  const next: string[] = [];
+  const seen = new Set<string>();
+
+  for (const note of [...preferred, ...existing]) {
+    if (!note || seen.has(note)) {
+      continue;
+    }
+
+    seen.add(note);
+    next.push(note);
+  }
+
+  return next;
+};
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [ready, setReady] = useState(false);
@@ -105,6 +124,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [permissionDiagnostics, setPermissionDiagnostics] = useState<PermissionDiagnostic[]>([]);
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+
+  const mergeLiveSignalState = (
+    patch: Partial<LiveSignalState> & {
+      notes?: string[];
+    },
+  ) => {
+    setLiveSignalState((current) => ({
+      ...current,
+      ...patch,
+      notes: patch.notes ? mergeNotes(patch.notes, current.notes) : current.notes,
+    }));
+  };
 
   useEffect(() => {
     const loadState = async () => {
@@ -218,42 +249,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
     let active = true;
 
-    const applyScreenTimeJournalSummary = async () => {
-      const summary = await buildScreenTimeJournalSummary();
-
-      if (!active || summary.sessionCount === 0) {
+    const applyAppUsageSignals = async () => {
+      if (!active) {
         return;
       }
 
-      if (summary.derivedFromJournal && summary.metricPatch.screenTime !== undefined) {
-        applyTodayMetrics((current) => ({
-          ...current,
-          screenTime: Math.max(current.screenTime, summary.metricPatch.screenTime ?? 0),
-        }));
-      }
-
-      setLiveSignalState((current) => {
-        const nextNotes = summary.note
-          ? [
-              summary.note,
-              ...current.notes.filter((note) => !note.startsWith('App session journal')),
-            ]
-          : current.notes;
-
-        return {
-          ...current,
-          appSessionMinutes: summary.observedMinutes,
-          appSessionCount: summary.sessionCount,
-          appSessionDerived: summary.derivedFromJournal,
-          appSessionLastEventAt: summary.lastEventAt ?? current.appSessionLastEventAt,
-          notes: nextNotes,
-        };
-      });
+      await syncAppUsageSignals();
     };
 
-    void applyScreenTimeJournalSummary();
+    void applyAppUsageSignals();
     const stopScreenTimeJournal = startScreenTimeJournalListeners(() => {
-      void applyScreenTimeJournalSummary();
+      if (active) {
+        void applyAppUsageSignals();
+      }
     });
 
     return () => {
@@ -286,6 +294,70 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     });
   };
 
+  const mergeAppUsageMetrics = (
+    current: DailyMetrics,
+    metricPatch: Partial<DailyMetrics>,
+    source: LiveSignalState['appUsageSource'],
+  ) => {
+    const next = { ...current };
+
+    if (metricPatch.screenTime !== undefined) {
+      next.screenTime =
+        source === 'app-session-journal'
+          ? Math.max(current.screenTime, metricPatch.screenTime)
+          : metricPatch.screenTime;
+    }
+
+    const directKeys: Array<
+      | 'socialMediaTime'
+      | 'videoStreamingTime'
+      | 'heavyAppOpens'
+      | 'unusedAppsCount'
+      | 'mobileDataUsage'
+      | 'notificationsPerDay'
+    > = [
+      'socialMediaTime',
+      'videoStreamingTime',
+      'heavyAppOpens',
+      'unusedAppsCount',
+      'mobileDataUsage',
+      'notificationsPerDay',
+    ];
+
+    for (const key of directKeys) {
+      const value = metricPatch[key];
+
+      if (value !== undefined) {
+        next[key] = value;
+      }
+    }
+
+    return next;
+  };
+
+  const syncAppUsageSignals = async () => {
+    const usageSignals = await collectAppUsageSignals();
+
+    if (Object.keys(usageSignals.metricPatch).length > 0) {
+      applyTodayMetrics((current) =>
+        mergeAppUsageMetrics(current, usageSignals.metricPatch, usageSignals.source),
+      );
+    }
+
+    setLiveSignalState((current) => {
+      const retainedNotes = current.notes.filter(
+        (note) =>
+          !APP_USAGE_NOTE_PREFIXES.some((prefix) => note.startsWith(prefix)),
+      );
+
+      return {
+        ...current,
+        ...usageSignals.statePatch,
+        notes: mergeNotes(usageSignals.notes, retainedNotes),
+      };
+    });
+  };
+
   const completeOnboarding = async (nextPermissions: PermissionState) => {
     setHasCompletedOnboarding(true);
     setPermissions(nextPermissions);
@@ -299,7 +371,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await refreshPermissionDiagnostics(true, nextPermissions);
     const { metricPatch, signalState } = await collectDeviceSignalPatch(nextPermissions);
     applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
-    setLiveSignalState(signalState);
+    mergeLiveSignalState(signalState);
+    await syncAppUsageSignals();
     if (nextPermissions.notifications) {
       setNotificationsEnabled(true);
     }
@@ -320,13 +393,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   async function syncLiveSignals() {
-    setLiveSignalState((current) => ({ ...current, status: 'syncing', notes: ['Syncing device signals...'] }));
+    mergeLiveSignalState({
+      status: 'syncing',
+      notes: ['Syncing device signals...'],
+    });
     try {
       const { metricPatch, signalState } = await collectDeviceSignalPatch(permissions);
       applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
-      setLiveSignalState(signalState);
+      mergeLiveSignalState(signalState);
+      await syncAppUsageSignals();
     } catch {
-      setLiveSignalState({
+      mergeLiveSignalState({
         syncedAt: new Date().toISOString(),
         status: 'error',
         notes: ['Live signal sync failed on this device.'],

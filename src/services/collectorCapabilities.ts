@@ -22,19 +22,38 @@ export const buildCollectorCapabilities = ({
   const location = getDiagnostic(diagnostics, 'location');
   const notifications = getDiagnostic(diagnostics, 'notifications');
   const screenTime = getDiagnostic(diagnostics, 'screenTime');
+  const screenTimeStatus =
+    liveSignalState.appUsageSource === 'native-module'
+      ? 'live'
+      : liveSignalState.appUsageSource === 'app-session-journal'
+        ? 'estimated'
+        : screenTime?.status === 'blocked'
+          ? 'blocked'
+          : screenTime?.status === 'unavailable'
+            ? 'unavailable'
+            : screenTime?.status === 'pending'
+              ? 'estimated'
+              : 'native-required';
 
   const capabilities: CollectorCapabilitySeed[] = [
     {
       id: 'screen-time',
       title: 'Screen Time & App Usage',
       group: 'Behavioral',
-      status: screenTime?.status === 'pending' ? 'estimated' : 'native-required',
+      status: screenTimeStatus,
       summary:
-        liveSignalState.appSessionDerived
+        liveSignalState.appUsageSource === 'native-module'
+          ? `Device-wide app usage is live${
+              liveSignalState.appUsageObservedAppsCount
+                ? ` across ${liveSignalState.appUsageObservedAppsCount} apps`
+                : ''
+            }, with shared scoring ready for screen time and deeper behavior signals.`
+        : liveSignalState.appSessionDerived
           ? `A local app-session journal has observed ${liveSignalState.appSessionMinutes ?? 0} minutes across ${liveSignalState.appSessionCount ?? 0} sessions, while full OS usage still needs native bridges.`
           : screenTime?.status === 'pending'
           ? 'Rule engine can estimate this family, but exact history is not active.'
-          : 'Exact app-level screen history still needs native iOS and Android bridges.',
+          : screenTime?.summary ??
+            'Exact app-level screen history still needs native iOS and Android bridges.',
       detail:
         'This powers screen time, social app usage, heavy app opens, and notification-heavy behavior scoring.',
       signals: ['screenTime', 'socialMediaTime', 'heavyAppOpens', 'unusedAppsCount'],
