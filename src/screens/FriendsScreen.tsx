@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { FriendCard } from '../components/FriendCard';
 import { JointChallengeCard } from '../components/JointChallengeCard';
@@ -18,15 +18,28 @@ type LeaderboardMode = 'friends' | 'regional' | 'global';
 export const FriendsScreen = () => {
   const navigation = useNavigation<any>();
   const [mode, setMode] = useState<LeaderboardMode>('friends');
+  const [friendCode, setFriendCode] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [region, setRegion] = useState('');
   const {
+    addFriend,
     badges,
     friends,
     jointChallenges,
     leaderboards,
+    socialProfile,
+    socialSyncStatus,
     streakDays,
+    syncSocialGraph,
     todayBreakdown,
+    updateSocialProfile,
     weeklyAverageScore,
   } = useAppContext();
+
+  React.useEffect(() => {
+    setDisplayName(socialProfile.displayName);
+    setRegion(socialProfile.region);
+  }, [socialProfile.displayName, socialProfile.region]);
 
   const activeLeaderboard = leaderboards[mode];
   const jointChallengeMembers = useMemo(
@@ -40,6 +53,58 @@ export const FriendsScreen = () => {
 
   return (
     <Screen>
+      <SurfaceCard>
+        <SectionTitle
+          title="Your circle"
+          subtitle="Real friend code, online sync, and calm social setup"
+        />
+        <Text style={styles.meta}>
+          Your code: {socialProfile.friendCode} | Sync: {socialSyncStatus}
+        </Text>
+        <TextInput
+          value={displayName}
+          onChangeText={setDisplayName}
+          placeholder="Display name"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+        />
+        <TextInput
+          value={region}
+          onChangeText={setRegion}
+          placeholder="Region"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+        />
+        <TextInput
+          value={friendCode}
+          onChangeText={setFriendCode}
+          autoCapitalize="characters"
+          placeholder="Enter friend code"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+        />
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={() => void updateSocialProfile({ displayName, region })}
+            style={styles.secondaryButton}
+          >
+            <Text style={styles.secondaryButtonText}>Save profile</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              void addFriend(friendCode.trim());
+              setFriendCode('');
+            }}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Add friend</Text>
+          </Pressable>
+          <Pressable onPress={() => void syncSocialGraph()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Refresh cloud</Text>
+          </Pressable>
+        </View>
+      </SurfaceCard>
+
       <SurfaceCard>
         <SectionTitle
           title="Weekly leaderboard"
@@ -98,9 +163,23 @@ export const FriendsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  actionRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
   chips: {
     flexDirection: 'row',
     gap: spacing.xs,
+  },
+  input: {
+    borderColor: 'rgba(160,167,162,0.18)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    color: colors.forestInk,
+    fontFamily: typography.body,
+    fontSize: 13,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   chip: {
     borderColor: 'rgba(160,167,162,0.18)',
@@ -125,6 +204,37 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
+  },
+  meta: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  primaryButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.softTeal,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  primaryButtonText: {
+    color: colors.softWhite,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+  },
+  secondaryButton: {
+    alignSelf: 'flex-start',
+    borderColor: colors.softTeal,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  secondaryButtonText: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
   },
   shareCard: {
     gap: spacing.sm,

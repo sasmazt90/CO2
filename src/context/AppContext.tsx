@@ -51,6 +51,19 @@ import {
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
+import {
+  addFriendByCode,
+  ensureRemoteProfile,
+  fetchSocialState,
+  syncJoinedChallenges,
+  syncWeeklySnapshot,
+} from '../services/socialSyncService';
+import {
+  createLocalSocialProfileSeed,
+  loadLocalSocialProfile,
+  LocalSocialProfile,
+  saveLocalSocialProfile,
+} from '../services/socialProfileService';
 
 interface AppContextValue {
   ready: boolean;
@@ -63,6 +76,8 @@ interface AppContextValue {
   permissionDiagnostics: PermissionDiagnostic[];
   collectorCapabilities: CollectorCapability[];
   deviceProfile: DeviceProfile;
+  socialProfile: LocalSocialProfile;
+  socialSyncStatus: 'idle' | 'syncing' | 'ready' | 'error';
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
   weeklyAverageScore: number;
@@ -87,6 +102,9 @@ interface AppContextValue {
     patch: Partial<DailyMetrics>,
     customizedKeys: Array<keyof DailyMetrics>,
   ) => Promise<void>;
+  syncSocialGraph: () => Promise<void>;
+  updateSocialProfile: (patch: Partial<LocalSocialProfile>) => Promise<void>;
+  addFriend: (friendCode: string) => Promise<void>;
   markNotificationRead: (notificationId: string) => void;
 }
 
@@ -139,8 +157,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentTodayMetrics, setCurrentTodayMetrics] = useState<DailyMetrics>(createTodayMetricSeed());
   const [permissionDiagnostics, setPermissionDiagnostics] = useState<PermissionDiagnostic[]>([]);
   const [deviceProfile, setDeviceProfile] = useState<DeviceProfile>(defaultDeviceProfile);
+  const [socialProfile, setSocialProfile] = useState<LocalSocialProfile>(
+    createLocalSocialProfileSeed(),
+  );
+  const [socialSyncStatus, setSocialSyncStatus] = useState<
+    'idle' | 'syncing' | 'ready' | 'error'
+  >('idle');
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [remoteFriends, setRemoteFriends] = useState<FriendScore[] | null>(null);
+  const [remoteLeaderboards, setRemoteLeaderboards] = useState<{
+    friends: FriendScore[];
+    regional: FriendScore[];
+    global: FriendScore[];
+  } | null>(null);
+  const [remoteJointChallenges, setRemoteJointChallenges] = useState<JointChallenge[] | null>(null);
 
   const mergeLiveSignalState = (
     patch: Partial<LiveSignalState> & {
@@ -162,6 +193,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           loadHistorySnapshots(),
         ]);
         const loadedProfile = await loadDeviceProfile();
+        const loadedSocialProfile = await loadLocalSocialProfile();
         if (value) {
           const parsed = JSON.parse(value) as {
             hasCompletedOnboarding: boolean;
@@ -186,6 +218,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentTodayMetrics(nextTodayMetrics);
         setHistorySnapshots(nextHistorySnapshots);
         setDeviceProfile(loadedProfile);
+        setSocialProfile(loadedSocialProfile);
         await saveHistorySnapshots(nextHistorySnapshots);
         const diagnostics = await loadPermissionDiagnostics(
           value
@@ -206,6 +239,14 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       void syncLiveSignals();
     }
   }, [hasCompletedOnboarding, liveSignalState.status, ready]);
+
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding) {
+      return;
+    }
+
+    void syncSocialGraph();
+  }, [ready, hasCompletedOnboarding]);
 
   useEffect(() => {
     if (ready) {
@@ -493,6 +534,68 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await saveDeviceProfile(nextProfile);
   };
 
+  const updateSocialProfile = async (patch: Partial<LocalSocialProfile>) => {
+    const nextProfile = {
+      ...socialProfile,
+      ...patch,
+    };
+    setSocialProfile(nextProfile);
+    await saveLocalSocialProfile(nextProfile);
+  };
+
+  const syncSocialGraph = async () => {
+    setSocialSyncStatus('syncing');
+
+    try {
+      const ensuredProfile = await ensureRemoteProfile(socialProfile);
+      setSocialProfile(ensuredProfile);
+
+      const sharedBadge =
+        badges[0]?.title && badges[0]?.subtitle
+          ? `${badges[0].title} ${badges[0].subtitle}`
+          : 'Calm Leaf Bronze';
+
+      await syncWeeklySnapshot({
+        profile: ensuredProfile,
+        breakdown: todayBreakdown,
+        weeklyAverageScore,
+        streakDays,
+        sharedBadge,
+      });
+
+      await syncJoinedChallenges({
+        profileId: ensuredProfile.id!,
+        joinedChallengeIds: joinedChallenges,
+        todayMetrics,
+      });
+
+      const socialState = await fetchSocialState(ensuredProfile);
+      setRemoteFriends(socialState.friends);
+      setRemoteLeaderboards(socialState.leaderboards);
+      setRemoteJointChallenges(socialState.jointChallenges);
+      setSocialSyncStatus('ready');
+    } catch {
+      setSocialSyncStatus('error');
+    }
+  };
+
+  const addFriend = async (friendCode: string) => {
+    if (!socialProfile.id) {
+      await syncSocialGraph();
+    }
+
+    if (!socialProfile.id) {
+      throw new Error('Profile is not ready yet.');
+    }
+
+    await addFriendByCode({
+      profileId: socialProfile.id,
+      friendCode,
+    });
+
+    await syncSocialGraph();
+  };
+
   const markNotificationRead = (notificationId: string) => {
     setNotificationFeed((current) =>
       current.map((item) =>
@@ -591,6 +694,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     [todayBreakdown],
   );
 
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding || socialSyncStatus === 'syncing') {
+      return;
+    }
+
+    void syncSocialGraph();
+  }, [
+    badges,
+    hasCompletedOnboarding,
+    joinedChallenges,
+    ready,
+    socialProfile.displayName,
+    socialProfile.friendCode,
+    socialProfile.region,
+    socialSyncStatus,
+    streakDays,
+    todayBreakdown.score,
+    weeklyAverageScore,
+  ]);
+
   const value = useMemo<AppContextValue>(
     () => ({
       ready,
@@ -603,6 +726,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       permissionDiagnostics,
       collectorCapabilities,
       deviceProfile,
+      socialProfile,
+      socialSyncStatus,
       notificationFeed,
       notificationsEnabled,
       weeklyAverageScore,
@@ -611,19 +736,25 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       joinedChallenges,
       availableChallenges: challenges,
       badges,
-      friends: getLeaderboardByCohort('friends'),
+      friends: remoteFriends ?? getLeaderboardByCohort('friends'),
       leaderboards: {
-        friends: getLeaderboardByCohort('friends'),
-        regional: getLeaderboardByCohort('regional'),
-        global: getLeaderboardByCohort('global'),
+        friends:
+          remoteLeaderboards?.friends ?? getLeaderboardByCohort('friends'),
+        regional:
+          remoteLeaderboards?.regional ?? getLeaderboardByCohort('regional'),
+        global:
+          remoteLeaderboards?.global ?? getLeaderboardByCohort('global'),
       },
-      jointChallenges,
+      jointChallenges: remoteJointChallenges ?? jointChallenges,
       completeOnboarding,
       toggleChallenge,
       syncLiveSignals,
       refreshPermissionDiagnostics,
       updateTodayMetricPatch,
       updateDeviceProfile,
+      syncSocialGraph,
+      updateSocialProfile,
+      addFriend,
       markNotificationRead,
     }),
     [
@@ -635,10 +766,15 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       permissionDiagnostics,
       collectorCapabilities,
       deviceProfile,
+      socialProfile,
+      socialSyncStatus,
       notificationFeed,
       notificationsEnabled,
       permissions,
       ready,
+      remoteFriends,
+      remoteJointChallenges,
+      remoteLeaderboards,
       streakDays,
       todayBreakdown,
       todayMetrics,
