@@ -1,3 +1,4 @@
+import { useNavigation } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -24,6 +25,7 @@ const metricRows = [
 ] as const;
 
 export const UsageAccessScreen = () => {
+  const navigation = useNavigation<any>();
   const { liveSignalState, todayMetrics, refreshPermissionDiagnostics } = useAppContext();
   const [snapshotMetrics, setSnapshotMetrics] = useState<string[]>([]);
   const bridgeStatus = getNativeAppUsageBridgeStatus();
@@ -49,6 +51,11 @@ export const UsageAccessScreen = () => {
         <SectionTitle
           title="Usage Access"
           subtitle="How app usage reaches the score on this device"
+          action={
+            <Pressable onPress={() => navigation.navigate('AppClassifier')}>
+              <Text style={styles.link}>Classifier</Text>
+            </Pressable>
+          }
         />
         <View style={styles.row}>
           <Text style={styles.label}>Platform</Text>
@@ -194,5 +201,10 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 12,
+  },
+  link: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
   },
 });

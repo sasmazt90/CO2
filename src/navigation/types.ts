@@ -4,6 +4,7 @@ export type RootStackParamList = {
   DataSources: undefined;
   BridgeStatus: undefined;
   UsageAccess: undefined;
+  AppClassifier: undefined;
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;

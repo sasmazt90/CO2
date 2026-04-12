@@ -26,6 +26,19 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "mobileDataUsageMb"
   )
   private val socialPackages = listOf(
+    "com.instagram.android",
+    "com.zhiliaoapp.musically",
+    "com.snapchat.android",
+    "com.facebook.katana",
+    "com.facebook.orca",
+    "com.reddit.frontpage",
+    "com.linkedin.android",
+    "com.twitter.android",
+    "com.threadsapp",
+    "com.pinterest",
+    "com.discord",
+    "org.telegram.messenger",
+    "com.whatsapp",
     "instagram",
     "facebook",
     "tiktok",
@@ -36,9 +49,25 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "linkedin",
     "pinterest",
     "threads"
+    ,
+    "discord",
+    "telegram",
+    "whatsapp",
+    "messenger"
   )
 
   private val videoPackages = listOf(
+    "com.google.android.youtube",
+    "com.netflix.mediaclient",
+    "tv.twitch.android.app",
+    "com.disney.disneyplus",
+    "com.amazon.avod.thirdpartyclient",
+    "com.hulu.plus",
+    "com.wbd.stream",
+    "com.google.android.videos",
+    "org.videolan.vlc",
+    "com.plexapp.android",
+    "com.google.android.apps.youtube.music",
     "youtube",
     "netflix",
     "primevideo",
@@ -47,7 +76,9 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "hulu",
     "max",
     "vlc",
-    "plex"
+    "plex",
+    "video",
+    "player"
   )
 
   override fun definition() = ModuleDefinition {

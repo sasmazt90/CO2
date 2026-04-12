@@ -14,6 +14,7 @@ import { useAppContext } from '../context/AppContext';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
 import { BadgesScreen } from '../screens/BadgesScreen';
+import { AppClassifierScreen } from '../screens/AppClassifierScreen';
 import { ChallengesScreen } from '../screens/ChallengesScreen';
 import { BridgeStatusScreen } from '../screens/BridgeStatusScreen';
 import { DataSourcesScreen } from '../screens/DataSourcesScreen';
@@ -111,6 +112,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="DataSources" component={DataSourcesScreen} options={{ title: 'Data Sources' }} />
           <Stack.Screen name="BridgeStatus" component={BridgeStatusScreen} options={{ title: 'Bridge Status' }} />
           <Stack.Screen name="UsageAccess" component={UsageAccessScreen} options={{ title: 'Usage Access' }} />
+          <Stack.Screen name="AppClassifier" component={AppClassifierScreen} options={{ title: 'Usage Classifier' }} />
           <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />

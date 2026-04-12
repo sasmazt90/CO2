@@ -13,6 +13,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - Local app-session journal that provides a truthful screen-time fallback until OS-level usage bridges land
 - Shared app-usage collector contract that can accept a native `DigitalCarbonUsageBridge` later without changing the scoring flow
 - Local Expo native module scaffold for `DigitalCarbonUsageBridge`, including Android Usage Access support and an in-app Usage Access screen
+- Visible app-classifier registry for native usage categories and Android package matching
 - Local battery journal that turns live battery samples into charging-session metrics over time
 - Notification Center fed directly by triggered rules, with local device notification scheduling where supported
 - Local daily history journal with persisted score snapshots and trend rebuilding
