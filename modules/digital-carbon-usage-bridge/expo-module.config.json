@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["DigitalCarbonUsageBridgeModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.digitalcarbonusagebridge.DigitalCarbonUsageBridgeModule"]
+  }
+}

@@ -109,6 +109,12 @@ export const SettingsScreen = () => {
               : ''}
           </Text>
         ) : null}
+        <Pressable
+          onPress={() => navigation.navigate('UsageAccess')}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryButtonText}>Open Usage Access</Text>
+        </Pressable>
         <Pressable onPress={() => navigation.navigate('SignalLab')} style={styles.button}>
           <Text style={styles.buttonText}>Open Signal Lab</Text>
         </Pressable>

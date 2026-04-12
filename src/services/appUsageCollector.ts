@@ -1,13 +1,9 @@
-import { NativeModules, Platform } from 'react-native';
-
-import {
-  AppUsageSource,
-  DailyMetrics,
-  LiveSignalState,
-} from '../engine/types';
+import DigitalCarbonUsageBridge, {
+  type DigitalCarbonUsageBridgeStatus,
+  type DigitalCarbonUsageSnapshot,
+} from '../../modules/digital-carbon-usage-bridge';
+import { AppUsageSource, DailyMetrics, LiveSignalState } from '../engine/types';
 import { buildScreenTimeJournalSummary } from './screenTimeJournalService';
-
-const NATIVE_USAGE_BRIDGE_MODULE = 'DigitalCarbonUsageBridge';
 
 type NativeMetricField =
   | 'screenTimeMinutes'
@@ -19,28 +15,7 @@ type NativeMetricField =
   | 'notificationsPerDay'
   | 'observedAppsCount';
 
-interface NativeAppUsageSnapshot {
-  collectedAt?: string;
-  screenTimeMinutes?: number;
-  socialMediaMinutes?: number;
-  videoStreamingMinutes?: number;
-  heavyAppOpens?: number;
-  unusedAppsCount?: number;
-  mobileDataUsageMb?: number;
-  notificationsPerDay?: number;
-  observedAppsCount?: number;
-  supportsCategoryBreakdown?: boolean;
-}
-
-interface NativeAppUsageBridgeModule {
-  getTodayUsageSnapshot?: () => Promise<NativeAppUsageSnapshot>;
-}
-
-export interface NativeAppUsageBridgeStatus {
-  installed: boolean;
-  moduleName: string;
-  platform: string;
-}
+export interface NativeAppUsageBridgeStatus extends DigitalCarbonUsageBridgeStatus {}
 
 export interface AppUsageSignalResult {
   source: AppUsageSource;
@@ -75,11 +50,8 @@ const asFinitePositiveNumber = (value: unknown) =>
     ? value
     : undefined;
 
-const getNativeAppUsageBridge = () =>
-  NativeModules[NATIVE_USAGE_BRIDGE_MODULE] as NativeAppUsageBridgeModule | undefined;
-
 const buildNativeMetricPatch = (
-  snapshot: NativeAppUsageSnapshot,
+  snapshot: DigitalCarbonUsageSnapshot,
 ): Partial<DailyMetrics> => {
   const patch: Partial<DailyMetrics> = {};
 
@@ -101,24 +73,48 @@ const buildNativeMetricPatch = (
 };
 
 export const getNativeAppUsageBridgeStatus = (): NativeAppUsageBridgeStatus => {
-  const bridge = getNativeAppUsageBridge();
+  try {
+    return DigitalCarbonUsageBridge.getBridgeStatus();
+  } catch {
+    return {
+      moduleName: 'DigitalCarbonUsageBridge',
+      platform: 'unknown',
+      installed: false,
+      supportsDeviceWideUsage: false,
+      accessGranted: false,
+      requiresManualAccess: false,
+      canOpenSettings: false,
+      note: 'Native app usage bridge is unavailable in this build.',
+    };
+  }
+};
 
-  return {
-    installed: typeof bridge?.getTodayUsageSnapshot === 'function',
-    moduleName: NATIVE_USAGE_BRIDGE_MODULE,
-    platform: Platform.OS,
-  };
+export const openNativeAppUsageSettingsAsync = async () => {
+  try {
+    return await DigitalCarbonUsageBridge.openUsageAccessSettings();
+  } catch {
+    return false;
+  }
 };
 
 const collectNativeAppUsageSignals = async (): Promise<AppUsageSignalResult | null> => {
-  const bridge = getNativeAppUsageBridge();
+  const bridgeStatus = getNativeAppUsageBridgeStatus();
 
-  if (typeof bridge?.getTodayUsageSnapshot !== 'function') {
+  if (
+    !bridgeStatus.installed ||
+    !bridgeStatus.supportsDeviceWideUsage ||
+    !bridgeStatus.accessGranted
+  ) {
     return null;
   }
 
   try {
-    const snapshot = await bridge.getTodayUsageSnapshot();
+    const snapshot = await DigitalCarbonUsageBridge.getTodayUsageSnapshot();
+
+    if (!snapshot) {
+      return null;
+    }
+
     const metricPatch = buildNativeMetricPatch(snapshot);
 
     if (Object.keys(metricPatch).length === 0) {
@@ -177,6 +173,7 @@ const collectJournalAppUsageSignals = async (): Promise<AppUsageSignalResult | n
 };
 
 export const collectAppUsageSignals = async (): Promise<AppUsageSignalResult> => {
+  const bridgeStatus = getNativeAppUsageBridgeStatus();
   const nativeSignals = await collectNativeAppUsageSignals();
 
   if (nativeSignals) {
@@ -203,7 +200,9 @@ export const collectAppUsageSignals = async (): Promise<AppUsageSignalResult> =>
       appSessionLastEventAt: undefined,
     },
     notes: [
-      'App usage is still on calm seeded estimates until the journal or a native bridge has enough data.',
+      bridgeStatus.installed && bridgeStatus.supportsDeviceWideUsage && !bridgeStatus.accessGranted
+        ? bridgeStatus.note
+        : 'App usage is still on calm seeded estimates until the journal or a native bridge has enough data.',
     ],
   };
 };

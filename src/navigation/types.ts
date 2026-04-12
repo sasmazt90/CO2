@@ -3,6 +3,7 @@ export type RootStackParamList = {
   Method: undefined;
   DataSources: undefined;
   BridgeStatus: undefined;
+  UsageAccess: undefined;
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;

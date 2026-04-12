@@ -27,15 +27,42 @@ const screenTimeDiagnostic = (
   }
 
   if (bridgeStatus.installed) {
+    if (bridgeStatus.supportsDeviceWideUsage && bridgeStatus.accessGranted) {
+      return {
+        id: 'screenTime',
+        title: 'Screen time data',
+        status: 'granted',
+        summary:
+          'A native app-usage bridge is installed and already has device-wide access on this platform.',
+        detail:
+          'The shared collector can read device-wide usage snapshots here, while the local app-session journal remains as a calm fallback.',
+        actionLabel: 'Bridge ready',
+      };
+    }
+
+    if (bridgeStatus.supportsDeviceWideUsage && !bridgeStatus.accessGranted) {
+      return {
+        id: 'screenTime',
+        title: 'Screen time data',
+        status: 'blocked',
+        summary:
+          'The native app-usage bridge is installed, but system usage access still needs to be enabled.',
+        detail: bridgeStatus.note,
+        actionLabel: bridgeStatus.canOpenSettings
+          ? 'Open usage access'
+          : 'Needs approval',
+      };
+    }
+
     return {
       id: 'screenTime',
       title: 'Screen time data',
-      status: 'available',
+      status: 'native-required',
       summary:
-        'A native app-usage bridge is installed, so device-wide usage snapshots can flow into the score engine.',
+        'A local bridge exists, but this platform still does not expose the full device-wide usage history needed here.',
       detail:
-        'The local app-session journal remains available as a fallback, while the native bridge can supply broader daily usage totals and category summaries.',
-      actionLabel: 'Bridge ready',
+        `${bridgeStatus.note} The app-session journal remains active as the truthful fallback.`,
+      actionLabel: 'Fallback active',
     };
   }
 

@@ -1,0 +1,29 @@
+export interface DigitalCarbonUsageSnapshot {
+  collectedAt?: string;
+  screenTimeMinutes?: number;
+  socialMediaMinutes?: number;
+  videoStreamingMinutes?: number;
+  heavyAppOpens?: number;
+  unusedAppsCount?: number;
+  mobileDataUsageMb?: number;
+  notificationsPerDay?: number;
+  observedAppsCount?: number;
+  supportsCategoryBreakdown?: boolean;
+}
+
+export interface DigitalCarbonUsageBridgeStatus {
+  moduleName: string;
+  platform: string;
+  installed: boolean;
+  supportsDeviceWideUsage: boolean;
+  accessGranted: boolean;
+  requiresManualAccess: boolean;
+  canOpenSettings: boolean;
+  note: string;
+}
+
+export interface DigitalCarbonUsageBridgeModuleType {
+  getBridgeStatus(): DigitalCarbonUsageBridgeStatus;
+  getTodayUsageSnapshot(): Promise<DigitalCarbonUsageSnapshot | null>;
+  openUsageAccessSettings(): Promise<boolean>;
+}

@@ -362,7 +362,11 @@ export const buildNativeBridgePlans = (
     .map((capability) => {
       const config = bridgePlanConfig[capability.id];
       const platforms =
-        capability.id === 'screen-time' && bridgeStatus.installed && activePlatform
+        capability.id === 'screen-time' &&
+        bridgeStatus.installed &&
+        bridgeStatus.supportsDeviceWideUsage &&
+        bridgeStatus.accessGranted &&
+        activePlatform
           ? config.platforms.map((platform) =>
               platform.platform === activePlatform
                 ? {

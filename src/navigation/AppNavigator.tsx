@@ -27,6 +27,7 @@ import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShareCardScreen } from '../screens/ShareCardScreen';
 import { SignalLabScreen } from '../screens/SignalLabScreen';
+import { UsageAccessScreen } from '../screens/UsageAccessScreen';
 import { MainTabParamList, RootStackParamList } from './types';
 
 const navigationTheme: NavigationTheme = {
@@ -109,6 +110,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="DataSources" component={DataSourcesScreen} options={{ title: 'Data Sources' }} />
           <Stack.Screen name="BridgeStatus" component={BridgeStatusScreen} options={{ title: 'Bridge Status' }} />
+          <Stack.Screen name="UsageAccess" component={UsageAccessScreen} options={{ title: 'Usage Access' }} />
           <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
