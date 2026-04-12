@@ -29,7 +29,10 @@ import {
 import { collectAppUsageSignals } from '../services/appUsageCollector';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 import { buildCollectorCapabilities } from '../services/collectorCapabilities';
-import { deriveCompositeMetricsFromUsage } from '../services/derivedMetrics';
+import {
+  deriveCompositeMetricsFromUsage,
+  deriveProxyMetricsFromObservedSignals,
+} from '../services/derivedMetrics';
 import {
   buildHistoryBreakdowns,
   createSeedHistory,
@@ -363,10 +366,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             ...usageSignals.statePatch,
           },
         });
-
-        return {
+        const nextMetrics = {
           ...mergedMetrics,
           ...derivedPatch,
+        };
+        const proxyPatch = deriveProxyMetricsFromObservedSignals({
+          currentMetrics: nextMetrics,
+          liveSignalState: {
+            ...liveSignalState,
+            ...usageSignals.statePatch,
+          },
+        });
+
+        return {
+          ...nextMetrics,
+          ...proxyPatch,
         };
       });
     }

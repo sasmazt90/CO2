@@ -272,8 +272,14 @@ const buildStatus = ({
       if (liveSignalState.locationEnabled) {
         return {
           status: 'derived',
-          sourceLabel: 'foreground location',
-          summary: 'This metric is inferred from approved foreground location availability.',
+          sourceLabel:
+            key === 'navigationTime'
+              ? 'foreground location'
+              : 'location-backed proxy model',
+          summary:
+            key === 'navigationTime'
+              ? 'This metric is inferred from approved foreground location availability.'
+              : 'This metric is being derived from approved location availability plus navigation behavior.',
         };
       }
 
@@ -366,19 +372,66 @@ const buildStatus = ({
         summary: 'Battery range time still uses a calm estimate until sampling history grows.',
       };
 
-    case 'avgTemp':
-    case 'btOnTime':
-    case 'btActiveDevices':
     case 'hotspotDuration':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'Hotspot usage is being approximated from mobile data totals and transfer intensity.',
+        };
+      }
+
+      return {
+        status: 'native-required',
+        sourceLabel: 'native collector needed',
+        summary: 'This signal still needs a deeper platform-specific collector for production accuracy.',
+      };
+
     case 'widgetCount':
     case 'liveWallpaperEnabled':
+      return {
+        status: 'native-required',
+        sourceLabel: 'native collector needed',
+        summary: 'This signal still needs a deeper platform-specific collector for production accuracy.',
+      };
+
+    case 'avgTemp':
+      if (
+        liveSignalState.appUsageSource === 'native-module' ||
+        liveSignalState.appUsageSource === 'app-session-journal'
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'Device temperature is being approximated from compute, camera, AR, and streaming intensity.',
+        };
+      }
+
+      return {
+        status: 'native-required',
+        sourceLabel: 'native collector needed',
+        summary: 'This signal still needs a deeper platform-specific collector for production accuracy.',
+      };
+
+    case 'btOnTime':
+    case 'btActiveDevices':
     case 'speakerCallTime':
     case 'avgMusicVolume':
     case 'singleCallDuration':
     case 'callCount':
     case 'btAudioTime':
-    case 'recorded4KVideo':
     case 'gyroActiveApps':
+      if (
+        liveSignalState.appUsageSource === 'native-module' ||
+        liveSignalState.appUsageSource === 'app-session-journal'
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'This metric is being derived from observed usage intensity and local proxy formulas.',
+        };
+      }
+
       return {
         status: 'native-required',
         sourceLabel: 'native collector needed',
@@ -393,6 +446,21 @@ const buildStatus = ({
           status: 'live',
           sourceLabel: 'native usage bridge',
           summary: 'This metric is coming from native device-wide foreground usage classification.',
+        };
+      }
+
+      return {
+        status: 'native-required',
+        sourceLabel: 'native collector needed',
+        summary: 'This signal still needs a deeper platform-specific collector for production accuracy.',
+      };
+
+    case 'recorded4KVideo':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'camera proxy model',
+          summary: '4K recording is being approximated from heavy camera and compute intensity.',
         };
       }
 
@@ -433,6 +501,17 @@ const buildStatus = ({
       };
 
     case 'faceIDUnlocks':
+      if (
+        liveSignalState.appUsageSource === 'native-module' ||
+        liveSignalState.appUsageSource === 'app-session-journal'
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'Biometric unlock activity is being approximated from screen and heavy-app usage patterns.',
+        };
+      }
+
       return {
         status: 'native-required',
         sourceLabel: 'biometric collector needed',
@@ -533,15 +612,74 @@ const buildStatus = ({
       };
 
     case 'idleScreenOn':
-    case 'cloudSyncSessions':
-    case 'mobileUpdatesData':
-    case 'vpnUsageTime':
-    case 'multiDeviceSyncEvents':
-    case 'backupRunsPerDay':
     case 'duplicateMedia':
     case 'compressionTasks':
-    case 'fastChargeSessions':
     case 'proximityActiveTime':
+      if (
+        liveSignalState.appUsageSource === 'native-module' ||
+        liveSignalState.appUsageSource === 'app-session-journal'
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'This metric is being derived from observed usage intensity and local proxy formulas.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'cloudSyncSessions':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'native usage composites',
+          summary: 'Cloud sync intensity is being derived from observed app surface area and unused-app pressure.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'mobileUpdatesData':
+    case 'multiDeviceSyncEvents':
+    case 'backupRunsPerDay':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'proxy model from observed usage',
+          summary: 'This metric is being approximated from mobile data totals, cloud pressure, and app surface area.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'fastChargeSessions':
+      if (liveSignalState.batteryJournalDerived || liveSignalState.batteryLevel !== undefined) {
+        return {
+          status: 'derived',
+          sourceLabel: 'battery proxy model',
+          summary: 'Fast-charge sessions are being approximated from charging cadence and low-range battery pressure.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'vpnUsageTime':
       return {
         status: 'estimated',
         sourceLabel: 'deterministic fallback',
