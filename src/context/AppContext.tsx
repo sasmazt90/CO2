@@ -29,6 +29,7 @@ import {
 import { collectAppUsageSignals } from '../services/appUsageCollector';
 import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 import { buildCollectorCapabilities } from '../services/collectorCapabilities';
+import { deriveCompositeMetricsFromUsage } from '../services/derivedMetrics';
 import {
   buildHistoryBreakdowns,
   createSeedHistory,
@@ -340,9 +341,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const usageSignals = await collectAppUsageSignals();
 
     if (Object.keys(usageSignals.metricPatch).length > 0) {
-      applyTodayMetrics((current) =>
-        mergeAppUsageMetrics(current, usageSignals.metricPatch, usageSignals.source),
-      );
+      applyTodayMetrics((current) => {
+        const mergedMetrics = mergeAppUsageMetrics(
+          current,
+          usageSignals.metricPatch,
+          usageSignals.source,
+        );
+        const derivedPatch = deriveCompositeMetricsFromUsage({
+          currentMetrics: mergedMetrics,
+          incomingPatch: usageSignals.metricPatch,
+          liveSignalState: {
+            ...liveSignalState,
+            ...usageSignals.statePatch,
+          },
+        });
+
+        return {
+          ...mergedMetrics,
+          ...derivedPatch,
+        };
+      });
     }
 
     setLiveSignalState((current) => {

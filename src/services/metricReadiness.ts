@@ -403,7 +403,29 @@ const buildStatus = ({
       };
 
     case 'backgroundActiveApps':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'native usage composites',
+          summary: 'Background activity is being derived from observed app count and heavy app usage patterns.',
+        };
+      }
+
+      return {
+        status: 'native-required',
+        sourceLabel: 'system activity collector needed',
+        summary: 'Background workload still needs OS-level process and indexing telemetry.',
+      };
+
     case 'backgroundComputeTime':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'native usage composites',
+          summary: 'Background compute is being derived from native app usage intensity and heavy foreground sessions.',
+        };
+      }
+
       return {
         status: 'native-required',
         sourceLabel: 'system activity collector needed',
@@ -511,7 +533,6 @@ const buildStatus = ({
       };
 
     case 'idleScreenOn':
-    case 'largeMobileTransfers':
     case 'cloudSyncSessions':
     case 'autoplayVideosCount':
     case 'mobileUpdatesData':
@@ -522,9 +543,24 @@ const buildStatus = ({
     case 'duplicateMedia':
     case 'compressionTasks':
     case 'fastChargeSessions':
-    case 'cpuHighUsage':
     case 'proximityActiveTime':
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'largeMobileTransfers':
     case 'radioHighPowerTime':
+    case 'cpuHighUsage':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'native usage composites',
+          summary: 'This metric is being derived from native mobile data totals and usage intensity patterns.',
+        };
+      }
+
       return {
         status: 'estimated',
         sourceLabel: 'deterministic fallback',

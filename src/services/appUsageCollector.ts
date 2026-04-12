@@ -32,6 +32,10 @@ const numericFields: NativeMetricField[] = [
   'screenTimeMinutes',
   'socialMediaMinutes',
   'videoStreamingMinutes',
+  'musicListeningMinutes',
+  'navigationMinutes',
+  'cameraMinutes',
+  'arUsageMinutes',
   'heavyAppOpens',
   'unusedAppsCount',
   'mobileDataUsageMb',
@@ -166,7 +170,11 @@ const collectNativeAppUsageSignals = async (): Promise<AppUsageSignalResult | nu
         appUsageSupportsCategories:
           Boolean(snapshot.supportsCategoryBreakdown) ||
           metricPatch.socialMediaTime !== undefined ||
-          metricPatch.videoStreamingTime !== undefined,
+          metricPatch.videoStreamingTime !== undefined ||
+          metricPatch.musicListeningTime !== undefined ||
+          metricPatch.navigationTime !== undefined ||
+          metricPatch.cameraUsage !== undefined ||
+          metricPatch.arAppUsage !== undefined,
       },
       notes: [
         `Native app usage bridge supplied today's device-wide usage summary${appLabel}.`,
