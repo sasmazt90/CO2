@@ -20,6 +20,7 @@ const metricRows = [
   { label: 'Video streaming', key: 'videoStreamingTime' },
   { label: 'Heavy app opens', key: 'heavyAppOpens' },
   { label: 'Unused apps', key: 'unusedAppsCount' },
+  { label: 'Mobile data', key: 'mobileDataUsage', suffix: ' MB' },
 ] as const;
 
 export const UsageAccessScreen = () => {
@@ -33,12 +34,12 @@ export const UsageAccessScreen = () => {
         ? 'App session journal'
         : 'Seeded estimates';
 
-  useEffect(() => {
-    const loadSnapshot = async () => {
-      const snapshot = await getNativeAppUsageSnapshotAsync();
-      setSnapshotMetrics(snapshot?.providedMetrics ?? []);
-    };
+  const loadSnapshot = async () => {
+    const snapshot = await getNativeAppUsageSnapshotAsync();
+    setSnapshotMetrics(snapshot?.providedMetrics ?? []);
+  };
 
+  useEffect(() => {
     void loadSnapshot();
   }, []);
 
@@ -92,7 +93,10 @@ export const UsageAccessScreen = () => {
         {metricRows.map((row) => (
           <View key={row.key} style={styles.row}>
             <Text style={styles.label}>{row.label}</Text>
-            <Text style={styles.value}>{todayMetrics[row.key]}</Text>
+            <Text style={styles.value}>
+              {todayMetrics[row.key]}
+              {'suffix' in row && row.suffix ? row.suffix : ''}
+            </Text>
           </View>
         ))}
       </SurfaceCard>
@@ -107,6 +111,12 @@ export const UsageAccessScreen = () => {
           device-wide totals for screen time, social media, and streaming. If not, the app
           keeps using the local session journal and seeded fallbacks.
         </Text>
+        {bridgeStatus.supportedMetrics.includes('mobileDataUsageMb') ? (
+          <Text style={styles.metricLine}>
+            Mobile data starts counting from the first native bridge sync of each day, so
+            earlier syncs make the daily baseline more faithful.
+          </Text>
+        ) : null}
         {bridgeStatus.canOpenSettings ? (
           <Pressable
             onPress={() => void openNativeAppUsageSettingsAsync()}
@@ -116,7 +126,10 @@ export const UsageAccessScreen = () => {
           </Pressable>
         ) : null}
         <Pressable
-          onPress={() => void refreshPermissionDiagnostics()}
+          onPress={() => {
+            void refreshPermissionDiagnostics();
+            void loadSnapshot();
+          }}
           style={styles.secondaryButton}
         >
           <Text style={styles.secondaryButtonText}>Refresh status</Text>

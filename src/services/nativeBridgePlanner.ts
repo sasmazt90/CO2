@@ -379,6 +379,24 @@ export const buildNativeBridgePlans = (
                   }
                 : platform,
             )
+          : capability.id === 'network-radios' &&
+            bridgeStatus.installed &&
+            bridgeStatus.supportsDeviceWideUsage &&
+            bridgeStatus.accessGranted &&
+            bridgeStatus.supportedMetrics.includes('mobileDataUsageMb') &&
+            activePlatform === 'Android'
+            ? config.platforms.map((platform) =>
+                platform.platform === 'Android'
+                  ? {
+                      ...platform,
+                      status: 'partial' as const,
+                      summary:
+                        'Android is already supplying mobile data totals through the native usage bridge, while low-level radio power still stays heuristic.',
+                      implementation:
+                        'Keep mobile data totals flowing from TrafficStats and focus the next pass on weak-signal, hotspot, and sync heuristics.',
+                    }
+                  : platform,
+              )
           : config.platforms;
 
       return {

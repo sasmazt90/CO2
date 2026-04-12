@@ -22,6 +22,9 @@ export const buildCollectorCapabilities = ({
   const location = getDiagnostic(diagnostics, 'location');
   const notifications = getDiagnostic(diagnostics, 'notifications');
   const screenTime = getDiagnostic(diagnostics, 'screenTime');
+  const hasNativeMobileData =
+    liveSignalState.appUsageSource === 'native-module' &&
+    Boolean(liveSignalState.appUsageProvidedMetrics?.includes('mobileDataUsageMb'));
   const screenTimeStatus =
     liveSignalState.appUsageSource === 'native-module'
       ? 'live'
@@ -157,9 +160,13 @@ export const buildCollectorCapabilities = ({
       group: 'Network & Cloud',
       status: 'estimated',
       summary:
-        'Network intensity currently uses transparent heuristics rather than low-level modem readings.',
+        hasNativeMobileData
+          ? 'Today\'s mobile data total is coming from the native usage bridge, while radio intensity and weak-signal behavior still stay transparent and estimated.'
+          : 'Network intensity currently uses transparent heuristics rather than low-level modem readings.',
       detail:
-        'Covers mobile data, weak signal, VPN, hotspot, cloud sync, and radio high-power scoring.',
+        hasNativeMobileData
+          ? 'Mobile data totals are live on this platform, while weak signal, VPN, hotspot, cloud sync, and radio power still rely on heuristics.'
+          : 'Covers mobile data, weak signal, VPN, hotspot, cloud sync, and radio high-power scoring.',
       signals: [
         'mobileDataUsage',
         'lowSignalTime',

@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Process
+import android.net.TrafficStats
 import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -16,12 +17,13 @@ import java.util.Locale
 import java.util.TimeZone
 
 class DigitalCarbonUsageBridgeModule : Module() {
-  private val supportedMetrics = listOf(
+  private val baseSupportedMetrics = listOf(
     "screenTimeMinutes",
     "socialMediaMinutes",
     "videoStreamingMinutes",
     "heavyAppOpens",
-    "unusedAppsCount"
+    "unusedAppsCount",
+    "mobileDataUsageMb"
   )
   private val socialPackages = listOf(
     "instagram",
@@ -82,9 +84,9 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "accessGranted" to isUsageAccessGranted(),
     "requiresManualAccess" to true,
     "canOpenSettings" to true,
-    "supportedMetrics" to supportedMetrics,
+    "supportedMetrics" to supportedMetrics(),
     "note" to if (isUsageAccessGranted()) {
-      "Android usage access is active, so device-wide app usage can feed the score."
+      "Android usage access is active, so device-wide app usage can feed the score. Mobile data totals are tracked from the first native bridge sync of the day."
     } else {
       "Android usage access still needs to be enabled in system settings before device-wide app usage can be read."
     }
@@ -118,15 +120,21 @@ class DigitalCarbonUsageBridgeModule : Module() {
     )
     val launcherPackages = queryLaunchablePackages(context)
     val unusedAppsCount = countUnusedLaunchableApps(usageStatsManager, launcherPackages, end)
+    val mobileDataUsageMb = getTodayMobileDataUsageMb(context, end)
+    val providedMetrics = supportedMetrics(mobileDataUsageMb != null)
 
     if (stats.isNullOrEmpty()) {
-      return mapOf(
+      val snapshot = mutableMapOf<String, Any>(
         "collectedAt" to formatUtc(end),
         "observedAppsCount" to 0,
         "supportsCategoryBreakdown" to true,
-        "providedMetrics" to supportedMetrics,
-        "unusedAppsCount" to unusedAppsCount
+        "providedMetrics" to providedMetrics,
+        "unusedAppsCount" to unusedAppsCount,
       )
+      if (mobileDataUsageMb != null) {
+        snapshot["mobileDataUsageMb"] = mobileDataUsageMb
+      }
+      return snapshot
     }
 
     val filteredStats = stats
@@ -139,7 +147,7 @@ class DigitalCarbonUsageBridgeModule : Module() {
       .filter { matchesAny(it.packageName ?: "", videoPackages) }
       .sumOf { it.totalTimeInForeground } / 60000.0
 
-    return mapOf(
+    val snapshot = mutableMapOf<String, Any>(
       "collectedAt" to formatUtc(end),
       "screenTimeMinutes" to totalForegroundMinutes,
       "socialMediaMinutes" to socialMinutes,
@@ -148,8 +156,12 @@ class DigitalCarbonUsageBridgeModule : Module() {
       "unusedAppsCount" to unusedAppsCount,
       "observedAppsCount" to filteredStats.size,
       "supportsCategoryBreakdown" to true,
-      "providedMetrics" to supportedMetrics
+      "providedMetrics" to providedMetrics
     )
+    if (mobileDataUsageMb != null) {
+      snapshot["mobileDataUsageMb"] = mobileDataUsageMb
+    }
+    return snapshot
   }
 
   private fun countHeavyAppForegroundEvents(
@@ -229,6 +241,49 @@ class DigitalCarbonUsageBridgeModule : Module() {
     return launcherPackages.count { !recentlyUsedPackages.contains(it) }
   }
 
+  private fun getTodayMobileDataUsageMb(context: Context, end: Long): Double? {
+    val totalBytes = getTotalMobileBytes() ?: return null
+    val preferences = context.getSharedPreferences(
+      "digital-carbon-usage-bridge",
+      Context.MODE_PRIVATE
+    )
+    val dayKey = localDayKey(end)
+    val storedDayKey = preferences.getString("mobile_bytes_day", null)
+    val storedBaseline = preferences.getLong("mobile_bytes_baseline", -1L)
+
+    if (storedDayKey != dayKey || storedBaseline < 0L || totalBytes < storedBaseline) {
+      preferences.edit()
+        .putString("mobile_bytes_day", dayKey)
+        .putLong("mobile_bytes_baseline", totalBytes)
+        .apply()
+      return 0.0
+    }
+
+    return (totalBytes - storedBaseline).toDouble() / 1048576.0
+  }
+
+  private fun getTotalMobileBytes(): Long? {
+    val received = TrafficStats.getMobileRxBytes()
+    val sent = TrafficStats.getMobileTxBytes()
+
+    if (
+      received == TrafficStats.UNSUPPORTED.toLong() ||
+      sent == TrafficStats.UNSUPPORTED.toLong()
+    ) {
+      return null
+    }
+
+    return received + sent
+  }
+
+  private fun supportedMetrics(includeMobileData: Boolean = getTotalMobileBytes() != null): List<String> {
+    return if (includeMobileData) {
+      baseSupportedMetrics
+    } else {
+      baseSupportedMetrics.filterNot { it == "mobileDataUsageMb" }
+    }
+  }
+
   private fun isOwnPackage(packageName: String): Boolean {
     val context = appContext.reactContext ?: return false
     return packageName == context.packageName
@@ -246,6 +301,11 @@ class DigitalCarbonUsageBridgeModule : Module() {
   private fun formatUtc(timestamp: Long): String {
     val formatter = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
     formatter.timeZone = TimeZone.getTimeZone("UTC")
+    return formatter.format(Date(timestamp))
+  }
+
+  private fun localDayKey(timestamp: Long): String {
+    val formatter = SimpleDateFormat("yyyy-MM-dd", Locale.US)
     return formatter.format(Date(timestamp))
   }
 }
