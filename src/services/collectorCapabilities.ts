@@ -227,9 +227,23 @@ export const buildCollectorCapabilities = ({
       id: 'background-processes',
       title: 'Background Processes & System Surfaces',
       group: 'Device Energy',
-      status: 'native-required',
+      status: hasUserConfirmed(
+        'backgroundActiveApps',
+        'backgroundComputeTime',
+        'widgetCount',
+        'liveWallpaperEnabled',
+      )
+        ? 'live'
+        : 'native-required',
       summary:
-        'Widgets, live wallpapers, background refresh, and process counts need native collectors.',
+        hasUserConfirmed(
+          'backgroundActiveApps',
+          'backgroundComputeTime',
+          'widgetCount',
+          'liveWallpaperEnabled',
+        )
+          ? 'Background and system-surface metrics are completed with explicit user-confirmed values.'
+          : 'Widgets, live wallpapers, background refresh, and process counts need native collectors.',
       detail:
         'This family would benefit from iOS background refresh inspection and Android usage stats bridges.',
       signals: [
@@ -243,9 +257,13 @@ export const buildCollectorCapabilities = ({
       id: 'camera-ar-sensors',
       title: 'Camera, AR, and Sensor Bursts',
       group: 'Processing & Sensors',
-      status: 'estimated',
+      status: hasUserConfirmed('recorded4KVideo', 'gyroActiveApps', 'faceIDUnlocks')
+        ? 'live'
+        : 'estimated',
       summary:
-        'Current scoring can represent this family, but fine-grained capture still uses prototype values.',
+        hasUserConfirmed('recorded4KVideo', 'gyroActiveApps', 'faceIDUnlocks')
+          ? 'Camera and sensor burst metrics are completed with explicit user-confirmed values plus observed usage.'
+          : 'Current scoring can represent this family, but fine-grained capture still uses prototype values.',
       detail:
         'Includes camera usage, 4K recording, gyroscope-heavy apps, AR sessions, and biometric unlocks.',
       signals: [

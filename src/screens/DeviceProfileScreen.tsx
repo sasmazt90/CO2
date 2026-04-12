@@ -11,11 +11,21 @@ import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-type ProfileMetricKey =
+type SliderControlKey =
+  | 'backgroundActiveApps'
+  | 'backgroundComputeTime'
   | 'btOnTime'
   | 'btActiveDevices'
+  | 'cpuHighUsage'
+  | 'cloudSyncSessions'
+  | 'mobileUpdatesData'
+  | 'multiDeviceSyncEvents'
+  | 'backupRunsPerDay'
+  | 'largeMobileTransfers'
+  | 'autoplayVideosCount'
+  | 'lowSignalTime'
+  | 'radioHighPowerTime'
   | 'widgetCount'
-  | 'liveWallpaperEnabled'
   | 'hotspotDuration'
   | 'vpnUsageTime'
   | 'speakerCallTime'
@@ -23,44 +33,45 @@ type ProfileMetricKey =
   | 'singleCallDuration'
   | 'callCount'
   | 'btAudioTime'
+  | 'gyroActiveApps'
+  | 'faceIDUnlocks'
   | 'notificationsPerDay';
 
-const visualControls: Array<{
-  key: Extract<ProfileMetricKey, 'widgetCount'>;
+type ToggleControlKey = 'liveWallpaperEnabled' | 'recorded4KVideo';
+
+type ProfileMetricKey = SliderControlKey | ToggleControlKey;
+
+type SliderControl = {
+  key: SliderControlKey;
   label: string;
   min: number;
   max: number;
   step: number;
   suffix: string;
-}> = [
+};
+
+const visualControls: SliderControl[] = [
   { key: 'widgetCount', label: 'Widgets', min: 0, max: 10, step: 1, suffix: '' },
 ];
 
-const radioControls: Array<{
-  key: Extract<ProfileMetricKey, 'btOnTime' | 'btActiveDevices' | 'hotspotDuration' | 'vpnUsageTime'>;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  suffix: string;
-}> = [
+const systemControls: SliderControl[] = [
+  { key: 'backgroundActiveApps', label: 'Background active apps', min: 0, max: 20, step: 1, suffix: '' },
+  { key: 'backgroundComputeTime', label: 'Background compute time', min: 0, max: 240, step: 5, suffix: ' min' },
+  { key: 'cpuHighUsage', label: 'CPU spike count', min: 0, max: 24, step: 1, suffix: '' },
+];
+
+const networkControls: SliderControl[] = [
   { key: 'btOnTime', label: 'Bluetooth on time', min: 0, max: 24, step: 1, suffix: ' h' },
   { key: 'btActiveDevices', label: 'Connected Bluetooth devices', min: 0, max: 4, step: 1, suffix: '' },
   { key: 'hotspotDuration', label: 'Hotspot minutes', min: 0, max: 180, step: 5, suffix: ' min' },
   { key: 'vpnUsageTime', label: 'VPN minutes', min: 0, max: 240, step: 5, suffix: ' min' },
+  { key: 'largeMobileTransfers', label: 'Large mobile transfers', min: 0, max: 2000, step: 25, suffix: ' MB' },
+  { key: 'autoplayVideosCount', label: 'Autoplay videos', min: 0, max: 20, step: 1, suffix: '' },
+  { key: 'lowSignalTime', label: 'Weak signal time', min: 0, max: 240, step: 5, suffix: ' min' },
+  { key: 'radioHighPowerTime', label: 'High-power radio time', min: 0, max: 240, step: 5, suffix: ' min' },
 ];
 
-const audioControls: Array<{
-  key: Extract<
-    ProfileMetricKey,
-    'speakerCallTime' | 'avgMusicVolume' | 'singleCallDuration' | 'callCount' | 'btAudioTime'
-  >;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  suffix: string;
-}> = [
+const audioControls: SliderControl[] = [
   { key: 'speakerCallTime', label: 'Speakerphone minutes', min: 0, max: 60, step: 5, suffix: ' min' },
   { key: 'avgMusicVolume', label: 'Typical music volume', min: 0, max: 1, step: 0.05, suffix: '' },
   { key: 'singleCallDuration', label: 'Longest call', min: 0, max: 120, step: 5, suffix: ' min' },
@@ -68,30 +79,44 @@ const audioControls: Array<{
   { key: 'btAudioTime', label: 'Bluetooth audio minutes', min: 0, max: 360, step: 5, suffix: ' min' },
 ];
 
-const habitControls: Array<{
-  key: Extract<ProfileMetricKey, 'widgetCount' | 'vpnUsageTime' | 'notificationsPerDay'>;
-  label: string;
-  min: number;
-  max: number;
-  step: number;
-  suffix: string;
-}> = [
-  {
-    key: 'notificationsPerDay',
-    label: 'Typical notification load',
-    min: 0,
-    max: 240,
-    step: 5,
-    suffix: ' / day',
-  },
+const cloudControls: SliderControl[] = [
+  { key: 'notificationsPerDay', label: 'Typical notification load', min: 0, max: 240, step: 5, suffix: ' / day' },
+  { key: 'cloudSyncSessions', label: 'Cloud sync sessions', min: 0, max: 8, step: 1, suffix: '' },
+  { key: 'mobileUpdatesData', label: 'Updates over mobile', min: 0, max: 500, step: 10, suffix: ' MB' },
+  { key: 'multiDeviceSyncEvents', label: 'Multi-device sync events', min: 0, max: 12, step: 1, suffix: '' },
+  { key: 'backupRunsPerDay', label: 'Backups per day', min: 0, max: 4, step: 1, suffix: '' },
 ];
+
+const sensorControls: SliderControl[] = [
+  { key: 'gyroActiveApps', label: 'Gyro-heavy app sessions', min: 0, max: 12, step: 1, suffix: '' },
+  { key: 'faceIDUnlocks', label: 'Biometric unlock count', min: 0, max: 150, step: 1, suffix: '' },
+];
+
+const formatSliderValue = (key: SliderControlKey, value: number, suffix: string) => {
+  if (key === 'avgMusicVolume') {
+    return `${Math.round(value * 100)}%`;
+  }
+
+  return `${Math.round(value)}${suffix}`;
+};
 
 export const DeviceProfileScreen = () => {
   const { deviceProfile, todayMetrics, updateDeviceProfile } = useAppContext();
 
   const [draft, setDraft] = useState<Partial<DailyMetrics>>({
+    backgroundActiveApps: todayMetrics.backgroundActiveApps,
+    backgroundComputeTime: todayMetrics.backgroundComputeTime,
     btOnTime: todayMetrics.btOnTime,
     btActiveDevices: todayMetrics.btActiveDevices,
+    cpuHighUsage: todayMetrics.cpuHighUsage,
+    cloudSyncSessions: todayMetrics.cloudSyncSessions,
+    mobileUpdatesData: todayMetrics.mobileUpdatesData,
+    multiDeviceSyncEvents: todayMetrics.multiDeviceSyncEvents,
+    backupRunsPerDay: todayMetrics.backupRunsPerDay,
+    largeMobileTransfers: todayMetrics.largeMobileTransfers,
+    autoplayVideosCount: todayMetrics.autoplayVideosCount,
+    lowSignalTime: todayMetrics.lowSignalTime,
+    radioHighPowerTime: todayMetrics.radioHighPowerTime,
     widgetCount: todayMetrics.widgetCount,
     liveWallpaperEnabled: todayMetrics.liveWallpaperEnabled,
     hotspotDuration: todayMetrics.hotspotDuration,
@@ -101,6 +126,9 @@ export const DeviceProfileScreen = () => {
     singleCallDuration: todayMetrics.singleCallDuration,
     callCount: todayMetrics.callCount,
     btAudioTime: todayMetrics.btAudioTime,
+    recorded4KVideo: todayMetrics.recorded4KVideo,
+    gyroActiveApps: todayMetrics.gyroActiveApps,
+    faceIDUnlocks: todayMetrics.faceIDUnlocks,
     notificationsPerDay: todayMetrics.notificationsPerDay,
     ...deviceProfile.patch,
   });
@@ -113,6 +141,29 @@ export const DeviceProfileScreen = () => {
     [draft],
   );
 
+  const renderSlider = (control: SliderControl) => (
+    <View key={control.key} style={styles.control}>
+      <View style={styles.controlHeader}>
+        <Text style={styles.label}>{control.label}</Text>
+        <Text style={styles.value}>
+          {formatSliderValue(control.key, (draft[control.key] as number) ?? 0, control.suffix)}
+        </Text>
+      </View>
+      <Slider
+        minimumTrackTintColor={colors.softTeal}
+        maximumTrackTintColor="rgba(160,167,162,0.18)"
+        thumbTintColor={colors.pastelGreen}
+        minimumValue={control.min}
+        maximumValue={control.max}
+        step={control.step}
+        value={(draft[control.key] as number) ?? 0}
+        onValueChange={(value) =>
+          setDraft((current) => ({ ...current, [control.key]: value }))
+        }
+      />
+    </View>
+  );
+
   return (
     <Screen>
       <SurfaceCard>
@@ -122,8 +173,7 @@ export const DeviceProfileScreen = () => {
         />
         <Text style={styles.body}>
           These values are explicit profile inputs, not hidden tracking. They help finish
-          stubborn metrics like widgets, live wallpapers, and VPN usage without pretending
-          the platform gave us data it did not.
+          stubborn metrics without pretending the platform gave us data it did not.
         </Text>
       </SurfaceCard>
 
@@ -140,111 +190,43 @@ export const DeviceProfileScreen = () => {
             trackColor={{ false: colors.line, true: colors.softTeal }}
           />
         </View>
-        {visualControls.map((control) => (
-          <View key={control.key} style={styles.control}>
-            <View style={styles.controlHeader}>
-              <Text style={styles.label}>{control.label}</Text>
-              <Text style={styles.value}>
-                {Math.round((draft[control.key] as number) ?? 0)}
-                {control.suffix}
-              </Text>
-            </View>
-            <Slider
-              minimumTrackTintColor={colors.softTeal}
-              maximumTrackTintColor="rgba(160,167,162,0.18)"
-              thumbTintColor={colors.pastelGreen}
-              minimumValue={control.min}
-              maximumValue={control.max}
-              step={control.step}
-              value={(draft[control.key] as number) ?? 0}
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, [control.key]: value }))
-              }
-            />
-          </View>
-        ))}
+        {visualControls.map(renderSlider)}
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="System load" subtitle="Manual completion for background surfaces" />
+        {systemControls.map(renderSlider)}
       </SurfaceCard>
 
       <SurfaceCard>
         <SectionTitle title="Radios & network" subtitle="User-confirmed daily defaults" />
-        {radioControls.map((control) => (
-          <View key={control.key} style={styles.control}>
-            <View style={styles.controlHeader}>
-              <Text style={styles.label}>{control.label}</Text>
-              <Text style={styles.value}>
-                {Math.round((draft[control.key] as number) ?? 0)}
-                {control.suffix}
-              </Text>
-            </View>
-            <Slider
-              minimumTrackTintColor={colors.softTeal}
-              maximumTrackTintColor="rgba(160,167,162,0.18)"
-              thumbTintColor={colors.pastelGreen}
-              minimumValue={control.min}
-              maximumValue={control.max}
-              step={control.step}
-              value={(draft[control.key] as number) ?? 0}
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, [control.key]: value }))
-              }
-            />
-          </View>
-        ))}
+        {networkControls.map(renderSlider)}
       </SurfaceCard>
 
       <SurfaceCard>
         <SectionTitle title="Audio & calls" subtitle="Manual completion for OS-limited surfaces" />
-        {audioControls.map((control) => (
-          <View key={control.key} style={styles.control}>
-            <View style={styles.controlHeader}>
-              <Text style={styles.label}>{control.label}</Text>
-              <Text style={styles.value}>
-                {control.key === 'avgMusicVolume'
-                  ? `${Math.round((((draft[control.key] as number) ?? 0) * 100))}%`
-                  : `${Math.round((draft[control.key] as number) ?? 0)}${control.suffix}`}
-              </Text>
-            </View>
-            <Slider
-              minimumTrackTintColor={colors.softTeal}
-              maximumTrackTintColor="rgba(160,167,162,0.18)"
-              thumbTintColor={colors.pastelGreen}
-              minimumValue={control.min}
-              maximumValue={control.max}
-              step={control.step}
-              value={(draft[control.key] as number) ?? 0}
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, [control.key]: value }))
-              }
-            />
-          </View>
-        ))}
+        {audioControls.map(renderSlider)}
       </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle title="Daily habit defaults" subtitle="Transparent user-entered values" />
-        {habitControls.map((control) => (
-          <View key={control.key} style={styles.control}>
-            <View style={styles.controlHeader}>
-              <Text style={styles.label}>{control.label}</Text>
-              <Text style={styles.value}>
-                {Math.round((draft[control.key] as number) ?? 0)}
-                {control.suffix}
-              </Text>
-            </View>
-            <Slider
-              minimumTrackTintColor={colors.softTeal}
-              maximumTrackTintColor="rgba(160,167,162,0.18)"
-              thumbTintColor={colors.pastelGreen}
-              minimumValue={control.min}
-              maximumValue={control.max}
-              step={control.step}
-              value={(draft[control.key] as number) ?? 0}
-              onValueChange={(value) =>
-                setDraft((current) => ({ ...current, [control.key]: value }))
-              }
-            />
-          </View>
-        ))}
+        <SectionTitle title="Cloud habits" subtitle="Daily network defaults you can confirm" />
+        {cloudControls.map(renderSlider)}
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Sensors & capture" subtitle="Manual confirmation for high-cost events" />
+        <View style={styles.row}>
+          <Text style={styles.label}>4K video recorded today</Text>
+          <Switch
+            value={Boolean(draft.recorded4KVideo)}
+            onValueChange={(value) =>
+              setDraft((current) => ({ ...current, recorded4KVideo: value }))
+            }
+            thumbColor={colors.softWhite}
+            trackColor={{ false: colors.line, true: colors.softTeal }}
+          />
+        </View>
+        {sensorControls.map(renderSlider)}
         <Pressable
           onPress={() => void updateDeviceProfile(draft, customizedKeys)}
           style={styles.button}
@@ -279,6 +261,8 @@ const styles = StyleSheet.create({
     color: colors.forestInk,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
+    flex: 1,
+    paddingRight: spacing.sm,
   },
   value: {
     color: colors.deepTeal,

@@ -540,6 +540,14 @@ const buildStatus = ({
       };
 
     case 'backgroundActiveApps':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Background activity is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -555,6 +563,14 @@ const buildStatus = ({
       };
 
     case 'backgroundComputeTime':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Background compute is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -570,6 +586,14 @@ const buildStatus = ({
       };
 
     case 'faceIDUnlocks':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Biometric unlock activity is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (
         liveSignalState.appUsageSource === 'native-module' ||
         liveSignalState.appUsageSource === 'app-session-journal'
@@ -702,6 +726,14 @@ const buildStatus = ({
       };
 
     case 'cloudSyncSessions':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Cloud sync intensity is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -719,6 +751,14 @@ const buildStatus = ({
     case 'mobileUpdatesData':
     case 'multiDeviceSyncEvents':
     case 'backupRunsPerDay':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -781,21 +821,6 @@ const buildStatus = ({
           status: 'derived',
           sourceLabel: 'native usage composites',
           summary: 'This metric is being derived from native mobile data totals and usage intensity patterns.',
-        };
-      }
-
-      return {
-        status: 'estimated',
-        sourceLabel: 'deterministic fallback',
-        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
-      };
-
-    case 'cloudSyncSessions':
-      if (liveSignalState.appUsageSource === 'native-module') {
-        return {
-          status: 'derived',
-          sourceLabel: 'native usage composites',
-          summary: 'Cloud sync intensity is being derived from observed app surface area and unused-app pressure.',
         };
       }
 
