@@ -200,6 +200,7 @@ export interface LiveSignalState {
   notes: string[];
   deviceName?: string;
   appUsageSource?: AppUsageSource;
+  appUsageProvidedMetrics?: string[];
   appUsageObservedAppsCount?: number;
   appUsageLastSyncAt?: string;
   appUsageSupportsCategories?: boolean;

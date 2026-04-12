@@ -9,6 +9,7 @@ export interface DigitalCarbonUsageSnapshot {
   notificationsPerDay?: number;
   observedAppsCount?: number;
   supportsCategoryBreakdown?: boolean;
+  providedMetrics?: string[];
 }
 
 export interface DigitalCarbonUsageBridgeStatus {
@@ -20,6 +21,7 @@ export interface DigitalCarbonUsageBridgeStatus {
   requiresManualAccess: boolean;
   canOpenSettings: boolean;
   note: string;
+  supportedMetrics: string[];
 }
 
 export interface DigitalCarbonUsageBridgeModuleType {

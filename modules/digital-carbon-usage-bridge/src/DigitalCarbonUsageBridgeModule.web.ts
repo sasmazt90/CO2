@@ -14,6 +14,7 @@ const status: DigitalCarbonUsageBridgeStatus = {
   canOpenSettings: false,
   note:
     'Web builds do not expose device-wide app usage, so the score stays on journal and seeded fallbacks here.',
+  supportedMetrics: [],
 };
 
 const DigitalCarbonUsageBridgeModule: DigitalCarbonUsageBridgeModuleType = {

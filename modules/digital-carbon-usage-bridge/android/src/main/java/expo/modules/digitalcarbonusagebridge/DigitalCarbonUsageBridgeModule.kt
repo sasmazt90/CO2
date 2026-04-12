@@ -5,6 +5,7 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Process
 import android.provider.Settings
 import expo.modules.kotlin.modules.Module
@@ -15,6 +16,13 @@ import java.util.Locale
 import java.util.TimeZone
 
 class DigitalCarbonUsageBridgeModule : Module() {
+  private val supportedMetrics = listOf(
+    "screenTimeMinutes",
+    "socialMediaMinutes",
+    "videoStreamingMinutes",
+    "heavyAppOpens",
+    "unusedAppsCount"
+  )
   private val socialPackages = listOf(
     "instagram",
     "facebook",
@@ -74,6 +82,7 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "accessGranted" to isUsageAccessGranted(),
     "requiresManualAccess" to true,
     "canOpenSettings" to true,
+    "supportedMetrics" to supportedMetrics,
     "note" to if (isUsageAccessGranted()) {
       "Android usage access is active, so device-wide app usage can feed the score."
     } else {
@@ -107,12 +116,16 @@ class DigitalCarbonUsageBridgeModule : Module() {
       start,
       end
     )
+    val launcherPackages = queryLaunchablePackages(context)
+    val unusedAppsCount = countUnusedLaunchableApps(usageStatsManager, launcherPackages, end)
 
     if (stats.isNullOrEmpty()) {
       return mapOf(
         "collectedAt" to formatUtc(end),
         "observedAppsCount" to 0,
-        "supportsCategoryBreakdown" to true
+        "supportsCategoryBreakdown" to true,
+        "providedMetrics" to supportedMetrics,
+        "unusedAppsCount" to unusedAppsCount
       )
     }
 
@@ -132,8 +145,10 @@ class DigitalCarbonUsageBridgeModule : Module() {
       "socialMediaMinutes" to socialMinutes,
       "videoStreamingMinutes" to videoMinutes,
       "heavyAppOpens" to countHeavyAppForegroundEvents(usageStatsManager, start, end),
+      "unusedAppsCount" to unusedAppsCount,
       "observedAppsCount" to filteredStats.size,
-      "supportsCategoryBreakdown" to true
+      "supportsCategoryBreakdown" to true,
+      "providedMetrics" to supportedMetrics
     )
   }
 
@@ -169,6 +184,49 @@ class DigitalCarbonUsageBridgeModule : Module() {
   private fun matchesAny(packageName: String, patterns: List<String>): Boolean {
     val normalized = packageName.lowercase(Locale.US)
     return patterns.any { normalized.contains(it) }
+  }
+
+  private fun queryLaunchablePackages(context: Context): Set<String> {
+    val packageManager = context.packageManager
+    val launcherIntent = Intent(Intent.ACTION_MAIN).apply {
+      addCategory(Intent.CATEGORY_LAUNCHER)
+    }
+
+    return packageManager.queryIntentActivities(launcherIntent, PackageManager.MATCH_ALL)
+      .mapNotNull { it.activityInfo?.packageName }
+      .filterNot { isOwnPackage(it) }
+      .toSet()
+  }
+
+  private fun countUnusedLaunchableApps(
+    usageStatsManager: UsageStatsManager,
+    launcherPackages: Set<String>,
+    end: Long
+  ): Int {
+    if (launcherPackages.isEmpty()) {
+      return 0
+    }
+
+    val lookbackStart = end - 30L * 24L * 60L * 60L * 1000L
+    val monthlyStats = usageStatsManager.queryUsageStats(
+      UsageStatsManager.INTERVAL_BEST,
+      lookbackStart,
+      end
+    )
+
+    if (monthlyStats.isNullOrEmpty()) {
+      return launcherPackages.size
+    }
+
+    val recentlyUsedPackages = monthlyStats
+      .filter {
+        !isOwnPackage(it.packageName ?: "") &&
+          (it.totalTimeInForeground > 0L || it.lastTimeUsed > lookbackStart)
+      }
+      .mapNotNull { it.packageName }
+      .toSet()
+
+    return launcherPackages.count { !recentlyUsedPackages.contains(it) }
   }
 
   private fun isOwnPackage(packageName: String): Boolean {

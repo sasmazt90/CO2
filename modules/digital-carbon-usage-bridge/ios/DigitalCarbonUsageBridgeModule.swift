@@ -13,7 +13,8 @@ public class DigitalCarbonUsageBridgeModule: Module {
         "accessGranted": false,
         "requiresManualAccess": false,
         "canOpenSettings": false,
-        "note": "iOS does not expose device-wide app usage history to this app surface, so the app stays on local fallbacks here."
+        "note": "iOS does not expose device-wide app usage history to this app surface, so the app stays on local fallbacks here.",
+        "supportedMetrics": []
       ]
     }
 

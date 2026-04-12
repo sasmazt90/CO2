@@ -85,7 +85,26 @@ export const getNativeAppUsageBridgeStatus = (): NativeAppUsageBridgeStatus => {
       requiresManualAccess: false,
       canOpenSettings: false,
       note: 'Native app usage bridge is unavailable in this build.',
+      supportedMetrics: [],
     };
+  }
+};
+
+export const getNativeAppUsageSnapshotAsync = async () => {
+  const bridgeStatus = getNativeAppUsageBridgeStatus();
+
+  if (
+    !bridgeStatus.installed ||
+    !bridgeStatus.supportsDeviceWideUsage ||
+    !bridgeStatus.accessGranted
+  ) {
+    return null;
+  }
+
+  try {
+    return await DigitalCarbonUsageBridge.getTodayUsageSnapshot();
+  } catch {
+    return null;
   }
 };
 
@@ -109,7 +128,7 @@ const collectNativeAppUsageSignals = async (): Promise<AppUsageSignalResult | nu
   }
 
   try {
-    const snapshot = await DigitalCarbonUsageBridge.getTodayUsageSnapshot();
+    const snapshot = await getNativeAppUsageSnapshotAsync();
 
     if (!snapshot) {
       return null;
@@ -134,6 +153,7 @@ const collectNativeAppUsageSignals = async (): Promise<AppUsageSignalResult | nu
         appUsageObservedAppsCount: observedAppsCount
           ? Math.round(observedAppsCount)
           : undefined,
+        appUsageProvidedMetrics: snapshot.providedMetrics ?? bridgeStatus.supportedMetrics,
         appUsageLastSyncAt: snapshot.collectedAt ?? new Date().toISOString(),
         appUsageSupportsCategories:
           Boolean(snapshot.supportsCategoryBreakdown) ||
@@ -163,6 +183,7 @@ const collectJournalAppUsageSignals = async (): Promise<AppUsageSignalResult | n
       appUsageSource: 'app-session-journal',
       appUsageLastSyncAt: summary.lastEventAt,
       appUsageSupportsCategories: false,
+      appUsageProvidedMetrics: ['screenTimeMinutes'],
       appSessionMinutes: summary.observedMinutes,
       appSessionCount: summary.sessionCount,
       appSessionDerived: summary.derivedFromJournal,
@@ -191,6 +212,7 @@ export const collectAppUsageSignals = async (): Promise<AppUsageSignalResult> =>
     metricPatch: {},
     statePatch: {
       appUsageSource: 'estimated',
+      appUsageProvidedMetrics: undefined,
       appUsageObservedAppsCount: undefined,
       appUsageLastSyncAt: undefined,
       appUsageSupportsCategories: false,

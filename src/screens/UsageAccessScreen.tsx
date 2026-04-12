@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Screen } from '../components/Screen';
@@ -7,6 +7,7 @@ import { SurfaceCard } from '../components/SurfaceCard';
 import { useAppContext } from '../context/AppContext';
 import {
   getNativeAppUsageBridgeStatus,
+  getNativeAppUsageSnapshotAsync,
   openNativeAppUsageSettingsAsync,
 } from '../services/appUsageCollector';
 import { colors } from '../theme/colors';
@@ -18,10 +19,12 @@ const metricRows = [
   { label: 'Social media', key: 'socialMediaTime' },
   { label: 'Video streaming', key: 'videoStreamingTime' },
   { label: 'Heavy app opens', key: 'heavyAppOpens' },
+  { label: 'Unused apps', key: 'unusedAppsCount' },
 ] as const;
 
 export const UsageAccessScreen = () => {
   const { liveSignalState, todayMetrics, refreshPermissionDiagnostics } = useAppContext();
+  const [snapshotMetrics, setSnapshotMetrics] = useState<string[]>([]);
   const bridgeStatus = getNativeAppUsageBridgeStatus();
   const sourceLabel =
     liveSignalState.appUsageSource === 'native-module'
@@ -29,6 +32,15 @@ export const UsageAccessScreen = () => {
       : liveSignalState.appUsageSource === 'app-session-journal'
         ? 'App session journal'
         : 'Seeded estimates';
+
+  useEffect(() => {
+    const loadSnapshot = async () => {
+      const snapshot = await getNativeAppUsageSnapshotAsync();
+      setSnapshotMetrics(snapshot?.providedMetrics ?? []);
+    };
+
+    void loadSnapshot();
+  }, []);
 
   return (
     <Screen>
@@ -55,6 +67,12 @@ export const UsageAccessScreen = () => {
           <Text style={styles.label}>Access granted</Text>
           <Text style={styles.value}>{bridgeStatus.accessGranted ? 'Yes' : 'No'}</Text>
         </View>
+        <Text style={styles.metricLine}>
+          Supported native metrics:{' '}
+          {bridgeStatus.supportedMetrics.length > 0
+            ? bridgeStatus.supportedMetrics.join(', ')
+            : 'none yet'}
+        </Text>
         <Text style={styles.body}>{bridgeStatus.note}</Text>
       </SurfaceCard>
 
@@ -66,6 +84,10 @@ export const UsageAccessScreen = () => {
         <Text style={styles.body}>
           Source: {sourceLabel}
           {liveSignalState.appUsageSupportsCategories ? ' | category metrics are active' : ''}
+        </Text>
+        <Text style={styles.metricLine}>
+          Metrics in last native snapshot:{' '}
+          {snapshotMetrics.length > 0 ? snapshotMetrics.join(', ') : 'none'}
         </Text>
         {metricRows.map((row) => (
           <View key={row.key} style={styles.row}>
@@ -110,6 +132,12 @@ const styles = StyleSheet.create({
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 19,
+  },
+  metricLine: {
+    color: colors.deepTeal,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 18,
   },
   row: {
     alignItems: 'center',

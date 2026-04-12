@@ -19,6 +19,7 @@ const fallbackStatus: DigitalCarbonUsageBridgeStatus = {
     Platform.OS === 'android'
       ? 'Native app usage bridge is not built into this binary yet.'
       : 'This platform is still using local fallbacks for app usage.',
+  supportedMetrics: [],
 };
 
 const fallbackModule: DigitalCarbonUsageBridgeModuleType = {
