@@ -534,10 +534,8 @@ const buildStatus = ({
 
     case 'idleScreenOn':
     case 'cloudSyncSessions':
-    case 'autoplayVideosCount':
     case 'mobileUpdatesData':
     case 'vpnUsageTime':
-    case 'lowSignalTime':
     case 'multiDeviceSyncEvents':
     case 'backupRunsPerDay':
     case 'duplicateMedia':
@@ -553,11 +551,28 @@ const buildStatus = ({
     case 'largeMobileTransfers':
     case 'radioHighPowerTime':
     case 'cpuHighUsage':
+    case 'autoplayVideosCount':
+    case 'lowSignalTime':
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
           sourceLabel: 'native usage composites',
           summary: 'This metric is being derived from native mobile data totals and usage intensity patterns.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'This metric is present in scoring, but still uses transparent heuristic data.',
+      };
+
+    case 'cloudSyncSessions':
+      if (liveSignalState.appUsageSource === 'native-module') {
+        return {
+          status: 'derived',
+          sourceLabel: 'native usage composites',
+          summary: 'Cloud sync intensity is being derived from observed app surface area and unused-app pressure.',
         };
       }
 

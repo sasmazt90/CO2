@@ -313,6 +313,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     const directKeys: Array<
       | 'socialMediaTime'
       | 'videoStreamingTime'
+      | 'musicListeningTime'
+      | 'navigationTime'
+      | 'cameraUsage'
+      | 'arAppUsage'
       | 'heavyAppOpens'
       | 'unusedAppsCount'
       | 'mobileDataUsage'
@@ -320,6 +324,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     > = [
       'socialMediaTime',
       'videoStreamingTime',
+      'musicListeningTime',
+      'navigationTime',
+      'cameraUsage',
+      'arAppUsage',
       'heavyAppOpens',
       'unusedAppsCount',
       'mobileDataUsage',

@@ -74,6 +74,27 @@ export const deriveCompositeMetricsFromUsage = ({
       0,
       240,
     );
+    patch.lowSignalTime = clamp(
+      patch.radioHighPowerTime * 0.45 + nextMetrics.navigationTime * 0.12,
+      0,
+      180,
+    );
+  }
+
+  if (hasProvidedMetric(liveSignalState, 'videoStreamingMinutes')) {
+    patch.autoplayVideosCount = clamp(nextMetrics.videoStreamingTime / 18, 0, 16);
+  }
+
+  if (
+    liveSignalState.appUsageObservedAppsCount !== undefined ||
+    hasProvidedMetric(liveSignalState, 'unusedAppsCount')
+  ) {
+    patch.cloudSyncSessions = clamp(
+      (liveSignalState.appUsageObservedAppsCount ?? 0) * 0.05 +
+        nextMetrics.unusedAppsCount * 0.18,
+      0,
+      8,
+    );
   }
 
   return patch;
