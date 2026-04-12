@@ -119,6 +119,13 @@ export const SignalLabScreen = () => {
         {liveSignalState.syncedAt ? (
           <Text style={styles.caption}>Last synced: {new Date(liveSignalState.syncedAt).toLocaleString()}</Text>
         ) : null}
+        {liveSignalState.appSessionCount ? (
+          <Text style={styles.caption}>
+            App session journal: {liveSignalState.appSessionMinutes ?? 0} minutes across{' '}
+            {liveSignalState.appSessionCount} sessions
+            {liveSignalState.appSessionDerived ? ' - active in screen-time fallback' : ''}
+          </Text>
+        ) : null}
         {liveSignalState.batteryJournalSamples ? (
           <Text style={styles.caption}>
             Battery journal samples today: {liveSignalState.batteryJournalSamples}

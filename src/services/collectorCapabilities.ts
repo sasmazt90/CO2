@@ -30,7 +30,9 @@ export const buildCollectorCapabilities = ({
       group: 'Behavioral',
       status: screenTime?.status === 'pending' ? 'estimated' : 'native-required',
       summary:
-        screenTime?.status === 'pending'
+        liveSignalState.appSessionDerived
+          ? `A local app-session journal has observed ${liveSignalState.appSessionMinutes ?? 0} minutes across ${liveSignalState.appSessionCount ?? 0} sessions, while full OS usage still needs native bridges.`
+          : screenTime?.status === 'pending'
           ? 'Rule engine can estimate this family, but exact history is not active.'
           : 'Exact app-level screen history still needs native iOS and Android bridges.',
       detail:

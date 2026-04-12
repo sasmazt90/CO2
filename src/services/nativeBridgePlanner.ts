@@ -48,24 +48,25 @@ const bridgePlanConfig: Record<
     platforms: [
       {
         platform: 'iOS',
-        status: 'planned',
+        status: 'partial',
         summary:
-          'Needs a dedicated screen-time handoff so app and daily usage totals can be imported into the shared score engine.',
+          'A local in-app session journal already works, but OS-wide screen time still needs a dedicated handoff into the shared score engine.',
         implementation:
-          'Build a native collector that writes daily usage buckets and social-app minutes into local app storage before scoring.',
-        permissions: ['User-approved screen-time access'],
+          'Keep the in-app session journal running, then add native daily usage buckets and social-app minutes before scoring.',
+        permissions: ['User-approved screen-time access for full history'],
       },
       {
         platform: 'Android',
-        status: 'planned',
+        status: 'partial',
         summary:
-          'Needs a foreground usage bridge so per-app and total screen time can be aggregated locally.',
+          'A local in-app session journal is already available, while broader foreground usage still needs a platform bridge.',
         implementation:
-          'Collect daily foreground totals, normalize app categories, and merge them into the metrics snapshot.',
-        permissions: ['Usage access permission'],
+          'Keep collecting app sessions locally, then bridge daily foreground totals and normalized app categories into the metrics snapshot.',
+        permissions: ['Usage access permission for full history'],
       },
     ],
     nextSteps: [
+      'Keep app-session fallback active',
       'Define daily usage schema',
       'Normalize social app categories',
       'Persist imports before morning score rebuild',

@@ -10,6 +10,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - 66 total positive/negative outcome rules
 - Daily score dashboard, insights, history, challenges, badges, friends, scientific method, and settings screens
 - Live signal sync for available device readings plus a Signal Lab calibration screen
+- Local app-session journal that provides a truthful screen-time fallback until OS-level usage bridges land
 - Local battery journal that turns live battery samples into charging-session metrics over time
 - Notification Center fed directly by triggered rules, with local device notification scheduling where supported
 - Local daily history journal with persisted score snapshots and trend rebuilding

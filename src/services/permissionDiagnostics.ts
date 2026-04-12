@@ -15,10 +15,10 @@ const screenTimeDiagnostic = (
   title: 'Screen time data',
   status: selected ? 'native-required' : 'pending',
   summary: selected
-    ? 'Exact OS screen-time access needs platform-specific native integration.'
+    ? 'Exact OS screen-time access needs platform-specific native integration, while a local app-session fallback can still run.'
     : 'Not requested yet.',
   detail: selected
-    ? 'This Expo build can explain the score logic, but exact per-app screen-time history still needs native iOS and Android collectors.'
+    ? 'This Expo build can already journal in-app foreground sessions, but exact per-app and total device screen-time history still needs native iOS and Android collectors.'
     : 'Enable this if you want the app to prepare for a deeper native screen-time integration later.',
   actionLabel: selected ? 'Native module needed' : 'Enable in onboarding',
 });

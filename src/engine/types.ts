@@ -194,6 +194,10 @@ export interface LiveSignalState {
   status: 'idle' | 'syncing' | 'ready' | 'error';
   notes: string[];
   deviceName?: string;
+  appSessionMinutes?: number;
+  appSessionCount?: number;
+  appSessionDerived?: boolean;
+  appSessionLastEventAt?: string;
   batteryLevel?: number;
   batteryState?: string;
   batteryJournalSamples?: number;

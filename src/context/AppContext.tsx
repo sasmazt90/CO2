@@ -38,6 +38,10 @@ import {
 } from '../services/historyService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
+import {
+  buildScreenTimeJournalSummary,
+  startScreenTimeJournalListeners,
+} from '../services/screenTimeJournalService';
 
 interface AppContextValue {
   ready: boolean;
@@ -204,6 +208,57 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     return () => {
       active = false;
       stopBatteryJournal();
+    };
+  }, [hasCompletedOnboarding, ready]);
+
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding) {
+      return;
+    }
+
+    let active = true;
+
+    const applyScreenTimeJournalSummary = async () => {
+      const summary = await buildScreenTimeJournalSummary();
+
+      if (!active || summary.sessionCount === 0) {
+        return;
+      }
+
+      if (summary.derivedFromJournal && summary.metricPatch.screenTime !== undefined) {
+        applyTodayMetrics((current) => ({
+          ...current,
+          screenTime: Math.max(current.screenTime, summary.metricPatch.screenTime ?? 0),
+        }));
+      }
+
+      setLiveSignalState((current) => {
+        const nextNotes = summary.note
+          ? [
+              summary.note,
+              ...current.notes.filter((note) => !note.startsWith('App session journal')),
+            ]
+          : current.notes;
+
+        return {
+          ...current,
+          appSessionMinutes: summary.observedMinutes,
+          appSessionCount: summary.sessionCount,
+          appSessionDerived: summary.derivedFromJournal,
+          appSessionLastEventAt: summary.lastEventAt ?? current.appSessionLastEventAt,
+          notes: nextNotes,
+        };
+      });
+    };
+
+    void applyScreenTimeJournalSummary();
+    const stopScreenTimeJournal = startScreenTimeJournalListeners(() => {
+      void applyScreenTimeJournalSummary();
+    });
+
+    return () => {
+      active = false;
+      stopScreenTimeJournal();
     };
   }, [hasCompletedOnboarding, ready]);
 

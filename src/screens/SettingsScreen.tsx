@@ -84,6 +84,13 @@ export const SettingsScreen = () => {
           Status: {liveSignalState.status}
           {liveSignalState.deviceName ? ` - ${liveSignalState.deviceName}` : ''}
         </Text>
+        {liveSignalState.appSessionCount ? (
+          <Text style={styles.body}>
+            App session journal: {liveSignalState.appSessionMinutes ?? 0} minutes across{' '}
+            {liveSignalState.appSessionCount} sessions
+            {liveSignalState.appSessionDerived ? ' | screen-time fallback is active' : ''}
+          </Text>
+        ) : null}
         {liveSignalState.batteryJournalSamples ? (
           <Text style={styles.body}>
             Battery journal: {liveSignalState.batteryJournalSamples} samples today
