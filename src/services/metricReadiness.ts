@@ -239,6 +239,14 @@ const buildStatus = ({
       };
 
     case 'shortVehicleTrips':
+      if (liveSignalState.mobilityJournalDerived) {
+        return {
+          status: 'journal-backed',
+          sourceLabel: 'mobility journal',
+          summary: 'Short-trip behavior is being reconstructed from local foreground location samples.',
+        };
+      }
+
       if (liveSignalState.locationEnabled || liveSignalState.stepsToday !== undefined) {
         return {
           status: 'derived',
@@ -262,6 +270,22 @@ const buildStatus = ({
     case 'locationRequests':
     case 'locationAlwaysOnApps':
     case 'navigationTime':
+      if (
+        liveSignalState.mobilityJournalDerived &&
+        (key === 'locationRequests' ||
+          key === 'locationAlwaysOnApps' ||
+          key === 'navigationTime')
+      ) {
+        return {
+          status: 'journal-backed',
+          sourceLabel: 'mobility journal',
+          summary:
+            key === 'navigationTime'
+              ? 'Navigation pressure is being reconstructed from local foreground location samples.'
+              : 'Foreground location checks are being journaled locally for this metric.',
+        };
+      }
+
       if (
         key === 'navigationTime' &&
         liveSignalState.appUsageSource === 'native-module' &&
@@ -386,6 +410,14 @@ const buildStatus = ({
       };
 
     case 'hotspotDuration':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Hotspot usage is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -442,6 +474,14 @@ const buildStatus = ({
     case 'callCount':
     case 'btAudioTime':
     case 'gyroActiveApps':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (
         liveSignalState.appUsageSource === 'native-module' ||
         liveSignalState.appUsageSource === 'app-session-journal'
@@ -477,6 +517,14 @@ const buildStatus = ({
       };
 
     case 'recorded4KVideo':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: '4K capture usage is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',
@@ -720,6 +768,14 @@ const buildStatus = ({
     case 'cpuHighUsage':
     case 'autoplayVideosCount':
     case 'lowSignalTime':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module') {
         return {
           status: 'derived',

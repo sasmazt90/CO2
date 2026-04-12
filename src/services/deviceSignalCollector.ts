@@ -9,6 +9,10 @@ import {
   buildBatteryJournalSummary,
   recordBatterySnapshot,
 } from './batteryJournalService';
+import {
+  buildMobilityJournalSummary,
+  recordMobilityLocation,
+} from './mobilityJournalService';
 
 const startOfToday = () => {
   const date = new Date();
@@ -131,10 +135,25 @@ export const collectDeviceSignalPatch = async (
       signalState.locationEnabled = locationPermission.granted;
       if (locationPermission.granted) {
         const lastKnown = await Location.getLastKnownPositionAsync();
+        if (lastKnown) {
+          await recordMobilityLocation(lastKnown, 'sync');
+        }
         if (lastKnown?.coords?.speed && lastKnown.coords.speed > 4) {
-          metricPatch.shortVehicleTrips = 1;
+          metricPatch.shortVehicleTrips = Math.max(metricPatch.shortVehicleTrips ?? 0, 1);
         }
         metricPatch.locationAlwaysOnApps = 0;
+        const mobilityJournal = await buildMobilityJournalSummary();
+        signalState.mobilityJournalSamples = mobilityJournal.sampleCount;
+        signalState.mobilityJournalDerived = mobilityJournal.derivedFromJournal;
+        signalState.mobilityJournalLastSampleAt = mobilityJournal.lastSampleAt;
+
+        if (mobilityJournal.derivedFromJournal) {
+          Object.assign(metricPatch, mobilityJournal.metricPatch);
+        }
+
+        if (mobilityJournal.note) {
+          notes.push(mobilityJournal.note);
+        }
         notes.push('Foreground location availability was confirmed for mobility estimates.');
       } else {
         notes.push('Location access was declined, so mobility stayed on fallback values.');

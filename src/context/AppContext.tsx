@@ -48,6 +48,10 @@ import {
   loadDeviceProfile,
   saveDeviceProfile,
 } from '../services/deviceProfileService';
+import {
+  buildMobilityJournalSummary,
+  startMobilityJournalListeners,
+} from '../services/mobilityJournalService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
@@ -301,6 +305,87 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       stopBatteryJournal();
     };
   }, [hasCompletedOnboarding, ready]);
+
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding || !permissions.location) {
+      return;
+    }
+
+    let active = true;
+    let stopWatcher: () => void = () => undefined;
+
+    const applyMobilityJournalSummary = async () => {
+      const summary = await buildMobilityJournalSummary();
+
+      if (!active) {
+        return;
+      }
+
+      if (summary.derivedFromJournal && Object.keys(summary.metricPatch).length > 0) {
+        applyTodayMetrics((current) => ({ ...current, ...summary.metricPatch }));
+      }
+
+      setLiveSignalState((current) => {
+        const nextNotes = summary.note
+          ? [
+              summary.note,
+              ...current.notes.filter((note) => !note.startsWith('Mobility journal')),
+            ]
+          : current.notes;
+
+        return {
+          ...current,
+          mobilityJournalSamples: summary.sampleCount,
+          mobilityJournalDerived: summary.derivedFromJournal,
+          mobilityJournalLastSampleAt:
+            summary.lastSampleAt ?? current.mobilityJournalLastSampleAt,
+          mobilityWatcherActive: true,
+          notes: nextNotes,
+        };
+      });
+    };
+
+    void applyMobilityJournalSummary();
+    void startMobilityJournalListeners((summary) => {
+      if (!active) {
+        return;
+      }
+
+      if (summary.derivedFromJournal && Object.keys(summary.metricPatch).length > 0) {
+        applyTodayMetrics((current) => ({ ...current, ...summary.metricPatch }));
+      }
+
+      setLiveSignalState((current) => ({
+        ...current,
+        mobilityJournalSamples: summary.sampleCount,
+        mobilityJournalDerived: summary.derivedFromJournal,
+        mobilityJournalLastSampleAt:
+          summary.lastSampleAt ?? current.mobilityJournalLastSampleAt,
+        mobilityWatcherActive: true,
+        notes: summary.note
+          ? [
+              summary.note,
+              ...current.notes.filter((note) => !note.startsWith('Mobility journal')),
+            ]
+          : current.notes,
+      }));
+    }).then((stop) => {
+      if (active) {
+        stopWatcher = stop;
+      } else {
+        stop();
+      }
+    });
+
+    return () => {
+      active = false;
+      stopWatcher();
+      setLiveSignalState((current) => ({
+        ...current,
+        mobilityWatcherActive: false,
+      }));
+    };
+  }, [hasCompletedOnboarding, permissions.location, ready]);
 
   useEffect(() => {
     if (!ready || !hasCompletedOnboarding) {
@@ -626,8 +711,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       buildCollectorCapabilities({
         diagnostics: permissionDiagnostics,
         liveSignalState,
+        userConfirmedKeys: deviceProfile.customizedKeys,
       }),
-    [liveSignalState, permissionDiagnostics],
+    [deviceProfile.customizedKeys, liveSignalState, permissionDiagnostics],
   );
 
   const breakdownHistory = useMemo(

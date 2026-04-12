@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { baseTodayMetrics, weeklyMetrics } from '../data/mockMetrics';
+import { createNeutralMetrics } from '../data/defaultMetrics';
 import { evaluateCarbonScore } from '../engine/evaluateCarbonScore';
 import { DailyMetrics, HistorySnapshot } from '../engine/types';
 import { differenceInDays, getLocalISODate, shiftISODate } from '../utils/date';
@@ -12,10 +12,7 @@ const cloneMetrics = (metrics: DailyMetrics): DailyMetrics => ({
   ...metrics,
 });
 
-export const createTodayMetricSeed = () => ({
-  ...baseTodayMetrics,
-  date: getLocalISODate(),
-});
+export const createTodayMetricSeed = () => createNeutralMetrics(getLocalISODate());
 
 const fillMissingDays = (snapshots: HistorySnapshot[]) => {
   if (snapshots.length === 0) {
@@ -49,10 +46,7 @@ const fillMissingDays = (snapshots: HistorySnapshot[]) => {
 };
 
 export const createSeedHistory = (): HistorySnapshot[] =>
-  weeklyMetrics.map((metrics) => ({
-    metrics: cloneMetrics(metrics),
-    savedAt: `${metrics.date}T18:00:00.000Z`,
-  }));
+  [];
 
 export const loadHistorySnapshots = async (): Promise<HistorySnapshot[]> => {
   const value = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);

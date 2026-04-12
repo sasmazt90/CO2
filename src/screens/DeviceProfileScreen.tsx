@@ -12,13 +12,21 @@ import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 type ProfileMetricKey =
+  | 'btOnTime'
+  | 'btActiveDevices'
   | 'widgetCount'
   | 'liveWallpaperEnabled'
+  | 'hotspotDuration'
   | 'vpnUsageTime'
+  | 'speakerCallTime'
+  | 'avgMusicVolume'
+  | 'singleCallDuration'
+  | 'callCount'
+  | 'btAudioTime'
   | 'notificationsPerDay';
 
-const numericControls: Array<{
-  key: Extract<ProfileMetricKey, 'widgetCount' | 'vpnUsageTime' | 'notificationsPerDay'>;
+const visualControls: Array<{
+  key: Extract<ProfileMetricKey, 'widgetCount'>;
   label: string;
   min: number;
   max: number;
@@ -26,7 +34,48 @@ const numericControls: Array<{
   suffix: string;
 }> = [
   { key: 'widgetCount', label: 'Widgets', min: 0, max: 10, step: 1, suffix: '' },
+];
+
+const radioControls: Array<{
+  key: Extract<ProfileMetricKey, 'btOnTime' | 'btActiveDevices' | 'hotspotDuration' | 'vpnUsageTime'>;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+}> = [
+  { key: 'btOnTime', label: 'Bluetooth on time', min: 0, max: 24, step: 1, suffix: ' h' },
+  { key: 'btActiveDevices', label: 'Connected Bluetooth devices', min: 0, max: 4, step: 1, suffix: '' },
+  { key: 'hotspotDuration', label: 'Hotspot minutes', min: 0, max: 180, step: 5, suffix: ' min' },
   { key: 'vpnUsageTime', label: 'VPN minutes', min: 0, max: 240, step: 5, suffix: ' min' },
+];
+
+const audioControls: Array<{
+  key: Extract<
+    ProfileMetricKey,
+    'speakerCallTime' | 'avgMusicVolume' | 'singleCallDuration' | 'callCount' | 'btAudioTime'
+  >;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+}> = [
+  { key: 'speakerCallTime', label: 'Speakerphone minutes', min: 0, max: 60, step: 5, suffix: ' min' },
+  { key: 'avgMusicVolume', label: 'Typical music volume', min: 0, max: 1, step: 0.05, suffix: '' },
+  { key: 'singleCallDuration', label: 'Longest call', min: 0, max: 120, step: 5, suffix: ' min' },
+  { key: 'callCount', label: 'Call count', min: 0, max: 20, step: 1, suffix: '' },
+  { key: 'btAudioTime', label: 'Bluetooth audio minutes', min: 0, max: 360, step: 5, suffix: ' min' },
+];
+
+const habitControls: Array<{
+  key: Extract<ProfileMetricKey, 'widgetCount' | 'vpnUsageTime' | 'notificationsPerDay'>;
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  suffix: string;
+}> = [
   {
     key: 'notificationsPerDay',
     label: 'Typical notification load',
@@ -41,9 +90,17 @@ export const DeviceProfileScreen = () => {
   const { deviceProfile, todayMetrics, updateDeviceProfile } = useAppContext();
 
   const [draft, setDraft] = useState<Partial<DailyMetrics>>({
+    btOnTime: todayMetrics.btOnTime,
+    btActiveDevices: todayMetrics.btActiveDevices,
     widgetCount: todayMetrics.widgetCount,
     liveWallpaperEnabled: todayMetrics.liveWallpaperEnabled,
+    hotspotDuration: todayMetrics.hotspotDuration,
     vpnUsageTime: todayMetrics.vpnUsageTime,
+    speakerCallTime: todayMetrics.speakerCallTime,
+    avgMusicVolume: todayMetrics.avgMusicVolume,
+    singleCallDuration: todayMetrics.singleCallDuration,
+    callCount: todayMetrics.callCount,
+    btAudioTime: todayMetrics.btAudioTime,
     notificationsPerDay: todayMetrics.notificationsPerDay,
     ...deviceProfile.patch,
   });
@@ -83,60 +140,111 @@ export const DeviceProfileScreen = () => {
             trackColor={{ false: colors.line, true: colors.softTeal }}
           />
         </View>
-        {numericControls
-          .filter((item) => item.key === 'widgetCount')
-          .map((control) => (
-            <View key={control.key} style={styles.control}>
-              <View style={styles.controlHeader}>
-                <Text style={styles.label}>{control.label}</Text>
-                <Text style={styles.value}>
-                  {Math.round((draft[control.key] as number) ?? 0)}
-                  {control.suffix}
-                </Text>
-              </View>
-              <Slider
-                minimumTrackTintColor={colors.softTeal}
-                maximumTrackTintColor="rgba(160,167,162,0.18)"
-                thumbTintColor={colors.pastelGreen}
-                minimumValue={control.min}
-                maximumValue={control.max}
-                step={control.step}
-                value={(draft[control.key] as number) ?? 0}
-                onValueChange={(value) =>
-                  setDraft((current) => ({ ...current, [control.key]: value }))
-                }
-              />
+        {visualControls.map((control) => (
+          <View key={control.key} style={styles.control}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.label}>{control.label}</Text>
+              <Text style={styles.value}>
+                {Math.round((draft[control.key] as number) ?? 0)}
+                {control.suffix}
+              </Text>
             </View>
-          ))}
+            <Slider
+              minimumTrackTintColor={colors.softTeal}
+              maximumTrackTintColor="rgba(160,167,162,0.18)"
+              thumbTintColor={colors.pastelGreen}
+              minimumValue={control.min}
+              maximumValue={control.max}
+              step={control.step}
+              value={(draft[control.key] as number) ?? 0}
+              onValueChange={(value) =>
+                setDraft((current) => ({ ...current, [control.key]: value }))
+              }
+            />
+          </View>
+        ))}
       </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle title="Network habits" subtitle="User-confirmed daily defaults" />
-        {numericControls
-          .filter((item) => item.key !== 'widgetCount')
-          .map((control) => (
-            <View key={control.key} style={styles.control}>
-              <View style={styles.controlHeader}>
-                <Text style={styles.label}>{control.label}</Text>
-                <Text style={styles.value}>
-                  {Math.round((draft[control.key] as number) ?? 0)}
-                  {control.suffix}
-                </Text>
-              </View>
-              <Slider
-                minimumTrackTintColor={colors.softTeal}
-                maximumTrackTintColor="rgba(160,167,162,0.18)"
-                thumbTintColor={colors.pastelGreen}
-                minimumValue={control.min}
-                maximumValue={control.max}
-                step={control.step}
-                value={(draft[control.key] as number) ?? 0}
-                onValueChange={(value) =>
-                  setDraft((current) => ({ ...current, [control.key]: value }))
-                }
-              />
+        <SectionTitle title="Radios & network" subtitle="User-confirmed daily defaults" />
+        {radioControls.map((control) => (
+          <View key={control.key} style={styles.control}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.label}>{control.label}</Text>
+              <Text style={styles.value}>
+                {Math.round((draft[control.key] as number) ?? 0)}
+                {control.suffix}
+              </Text>
             </View>
-          ))}
+            <Slider
+              minimumTrackTintColor={colors.softTeal}
+              maximumTrackTintColor="rgba(160,167,162,0.18)"
+              thumbTintColor={colors.pastelGreen}
+              minimumValue={control.min}
+              maximumValue={control.max}
+              step={control.step}
+              value={(draft[control.key] as number) ?? 0}
+              onValueChange={(value) =>
+                setDraft((current) => ({ ...current, [control.key]: value }))
+              }
+            />
+          </View>
+        ))}
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Audio & calls" subtitle="Manual completion for OS-limited surfaces" />
+        {audioControls.map((control) => (
+          <View key={control.key} style={styles.control}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.label}>{control.label}</Text>
+              <Text style={styles.value}>
+                {control.key === 'avgMusicVolume'
+                  ? `${Math.round((((draft[control.key] as number) ?? 0) * 100))}%`
+                  : `${Math.round((draft[control.key] as number) ?? 0)}${control.suffix}`}
+              </Text>
+            </View>
+            <Slider
+              minimumTrackTintColor={colors.softTeal}
+              maximumTrackTintColor="rgba(160,167,162,0.18)"
+              thumbTintColor={colors.pastelGreen}
+              minimumValue={control.min}
+              maximumValue={control.max}
+              step={control.step}
+              value={(draft[control.key] as number) ?? 0}
+              onValueChange={(value) =>
+                setDraft((current) => ({ ...current, [control.key]: value }))
+              }
+            />
+          </View>
+        ))}
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Daily habit defaults" subtitle="Transparent user-entered values" />
+        {habitControls.map((control) => (
+          <View key={control.key} style={styles.control}>
+            <View style={styles.controlHeader}>
+              <Text style={styles.label}>{control.label}</Text>
+              <Text style={styles.value}>
+                {Math.round((draft[control.key] as number) ?? 0)}
+                {control.suffix}
+              </Text>
+            </View>
+            <Slider
+              minimumTrackTintColor={colors.softTeal}
+              maximumTrackTintColor="rgba(160,167,162,0.18)"
+              thumbTintColor={colors.pastelGreen}
+              minimumValue={control.min}
+              maximumValue={control.max}
+              step={control.step}
+              value={(draft[control.key] as number) ?? 0}
+              onValueChange={(value) =>
+                setDraft((current) => ({ ...current, [control.key]: value }))
+              }
+            />
+          </View>
+        ))}
         <Pressable
           onPress={() => void updateDeviceProfile(draft, customizedKeys)}
           style={styles.button}

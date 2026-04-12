@@ -216,6 +216,10 @@ export interface LiveSignalState {
   currentBrightness?: number;
   stepsToday?: number;
   locationEnabled?: boolean;
+  mobilityJournalSamples?: number;
+  mobilityJournalDerived?: boolean;
+  mobilityJournalLastSampleAt?: string;
+  mobilityWatcherActive?: boolean;
 }
 
 export interface NotificationItem {

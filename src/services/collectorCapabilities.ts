@@ -1,6 +1,7 @@
 import {
   CollectorCapability,
   CollectorCapabilitySeed,
+  DailyMetrics,
   LiveSignalState,
   PermissionDiagnostic,
 } from '../engine/types';
@@ -14,9 +15,11 @@ const getDiagnostic = (
 export const buildCollectorCapabilities = ({
   diagnostics,
   liveSignalState,
+  userConfirmedKeys = [],
 }: {
   diagnostics: PermissionDiagnostic[];
   liveSignalState: LiveSignalState;
+  userConfirmedKeys?: Array<keyof DailyMetrics>;
 }): CollectorCapability[] => {
   const motion = getDiagnostic(diagnostics, 'motion');
   const location = getDiagnostic(diagnostics, 'location');
@@ -36,7 +39,9 @@ export const buildCollectorCapabilities = ({
             ? 'unavailable'
             : screenTime?.status === 'pending'
               ? 'estimated'
-              : 'native-required';
+            : 'native-required';
+  const hasUserConfirmed = (...keys: Array<keyof DailyMetrics>) =>
+    keys.some((key) => userConfirmedKeys.includes(key));
 
   const capabilities: CollectorCapabilitySeed[] = [
     {
@@ -120,7 +125,7 @@ export const buildCollectorCapabilities = ({
       title: 'Location & Mobility',
       group: 'Processing & Sensors',
       status:
-        liveSignalState.locationEnabled
+        liveSignalState.mobilityJournalDerived || liveSignalState.locationEnabled
           ? 'live'
           : location?.status === 'blocked'
             ? 'blocked'
@@ -128,8 +133,10 @@ export const buildCollectorCapabilities = ({
               ? 'unavailable'
               : 'estimated',
       summary:
-        liveSignalState.locationEnabled
-          ? 'Foreground location is available for mobility estimation.'
+        liveSignalState.mobilityJournalDerived
+          ? `Foreground location is live and a mobility journal has reconstructed movement from ${liveSignalState.mobilityJournalSamples ?? 0} samples.`
+          : liveSignalState.locationEnabled
+            ? 'Foreground location is available for mobility estimation.'
           : location?.summary ?? 'Location status is still being checked.',
       detail:
         'Used for mobility patterns, navigation load, and short vehicle trip inference.',
@@ -158,14 +165,20 @@ export const buildCollectorCapabilities = ({
       id: 'network-radios',
       title: 'Network, Signal, and Radio Load',
       group: 'Network & Cloud',
-      status: 'estimated',
+      status: hasNativeMobileData || hasUserConfirmed('hotspotDuration', 'vpnUsageTime')
+        ? 'live'
+        : 'estimated',
       summary:
         hasNativeMobileData
           ? 'Today\'s mobile data total is coming from the native usage bridge, while radio intensity and weak-signal behavior still stay transparent and estimated.'
+          : hasUserConfirmed('hotspotDuration', 'vpnUsageTime')
+            ? 'Network intensity is partly completed with user-confirmed radio and VPN defaults.'
           : 'Network intensity currently uses transparent heuristics rather than low-level modem readings.',
       detail:
         hasNativeMobileData
           ? 'Mobile data totals are live on this platform, while weak signal, VPN, hotspot, cloud sync, and radio power still rely on heuristics.'
+          : hasUserConfirmed('hotspotDuration', 'vpnUsageTime')
+            ? 'Mobile data may still be estimated, but hotspot and VPN behavior now comes from explicit user-confirmed values.'
           : 'Covers mobile data, weak signal, VPN, hotspot, cloud sync, and radio high-power scoring.',
       signals: [
         'mobileDataUsage',
@@ -178,9 +191,29 @@ export const buildCollectorCapabilities = ({
       id: 'audio-calls',
       title: 'Audio & Call Behavior',
       group: 'Audio',
-      status: 'native-required',
+      status: hasUserConfirmed(
+        'speakerCallTime',
+        'avgMusicVolume',
+        'singleCallDuration',
+        'callCount',
+        'btAudioTime',
+        'btOnTime',
+        'btActiveDevices',
+      )
+        ? 'live'
+        : 'native-required',
       summary:
-        'Exact call and playback telemetry needs deeper platform-specific integration.',
+        hasUserConfirmed(
+          'speakerCallTime',
+          'avgMusicVolume',
+          'singleCallDuration',
+          'callCount',
+          'btAudioTime',
+          'btOnTime',
+          'btActiveDevices',
+        )
+          ? 'Audio and call surfaces are completed with explicit user-confirmed daily defaults.'
+          : 'Exact call and playback telemetry needs deeper platform-specific integration.',
       detail:
         'This family powers speakerphone, volume, long call, call burst, and Bluetooth audio rules.',
       signals: [
