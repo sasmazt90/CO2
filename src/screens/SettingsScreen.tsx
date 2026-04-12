@@ -16,6 +16,7 @@ export const SettingsScreen = () => {
   const navigation = useNavigation<any>();
   const {
     collectorCapabilities,
+    deviceProfile,
     permissions,
     liveSignalState,
     permissionDiagnostics,
@@ -80,6 +81,11 @@ export const SettingsScreen = () => {
         </Pressable>
         <Pressable onPress={() => navigation.navigate('DataSources')} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Open Data Sources</Text>
+        </Pressable>
+        <Pressable onPress={() => navigation.navigate('DeviceProfile')} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>
+            Open Device Profile ({deviceProfile.customizedKeys.length})
+          </Text>
         </Pressable>
       </SurfaceCard>
 

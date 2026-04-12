@@ -42,6 +42,12 @@ import {
   upsertTodaySnapshot,
 } from '../services/historyService';
 import { deriveMetricBaselines } from '../services/metricBaselines';
+import {
+  DeviceProfile,
+  defaultDeviceProfile,
+  loadDeviceProfile,
+  saveDeviceProfile,
+} from '../services/deviceProfileService';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
@@ -56,6 +62,7 @@ interface AppContextValue {
   liveSignalState: LiveSignalState;
   permissionDiagnostics: PermissionDiagnostic[];
   collectorCapabilities: CollectorCapability[];
+  deviceProfile: DeviceProfile;
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
   weeklyAverageScore: number;
@@ -76,6 +83,10 @@ interface AppContextValue {
   syncLiveSignals: () => Promise<void>;
   refreshPermissionDiagnostics: (requestIfNeeded?: boolean) => Promise<void>;
   updateTodayMetricPatch: (patch: Partial<DailyMetrics>) => void;
+  updateDeviceProfile: (
+    patch: Partial<DailyMetrics>,
+    customizedKeys: Array<keyof DailyMetrics>,
+  ) => Promise<void>;
   markNotificationRead: (notificationId: string) => void;
 }
 
@@ -127,6 +138,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [historySnapshots, setHistorySnapshots] = useState<HistorySnapshot[]>([]);
   const [currentTodayMetrics, setCurrentTodayMetrics] = useState<DailyMetrics>(createTodayMetricSeed());
   const [permissionDiagnostics, setPermissionDiagnostics] = useState<PermissionDiagnostic[]>([]);
+  const [deviceProfile, setDeviceProfile] = useState<DeviceProfile>(defaultDeviceProfile);
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
@@ -149,6 +161,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           AsyncStorage.getItem(STORAGE_KEY),
           loadHistorySnapshots(),
         ]);
+        const loadedProfile = await loadDeviceProfile();
         if (value) {
           const parsed = JSON.parse(value) as {
             hasCompletedOnboarding: boolean;
@@ -172,6 +185,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
         setCurrentTodayMetrics(nextTodayMetrics);
         setHistorySnapshots(nextHistorySnapshots);
+        setDeviceProfile(loadedProfile);
         await saveHistorySnapshots(nextHistorySnapshots);
         const diagnostics = await loadPermissionDiagnostics(
           value
@@ -467,6 +481,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     applyTodayMetrics((current) => ({ ...current, ...patch }));
   };
 
+  const updateDeviceProfile = async (
+    patch: Partial<DailyMetrics>,
+    customizedKeys: Array<keyof DailyMetrics>,
+  ) => {
+    const nextProfile: DeviceProfile = {
+      patch,
+      customizedKeys,
+    };
+    setDeviceProfile(nextProfile);
+    await saveDeviceProfile(nextProfile);
+  };
+
   const markNotificationRead = (notificationId: string) => {
     setNotificationFeed((current) =>
       current.map((item) =>
@@ -482,8 +508,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         currentMetrics: currentTodayMetrics,
         historySnapshots,
       }),
+      ...deviceProfile.patch,
     }),
-    [currentTodayMetrics, historySnapshots],
+    [currentTodayMetrics, deviceProfile.patch, historySnapshots],
   );
 
   const todayBreakdown = useMemo(
@@ -575,6 +602,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       liveSignalState,
       permissionDiagnostics,
       collectorCapabilities,
+      deviceProfile,
       notificationFeed,
       notificationsEnabled,
       weeklyAverageScore,
@@ -595,6 +623,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       syncLiveSignals,
       refreshPermissionDiagnostics,
       updateTodayMetricPatch,
+      updateDeviceProfile,
       markNotificationRead,
     }),
     [
@@ -605,6 +634,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       liveSignalState,
       permissionDiagnostics,
       collectorCapabilities,
+      deviceProfile,
       notificationFeed,
       notificationsEnabled,
       permissions,

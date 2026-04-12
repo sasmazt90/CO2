@@ -18,6 +18,7 @@ import { typography } from '../theme/typography';
 const statusLabel: Record<MetricReadinessStatus, string> = {
   live: 'Live',
   'journal-backed': 'Journal',
+  'user-confirmed': 'Profile',
   derived: 'Derived',
   estimated: 'Estimated',
   'native-required': 'Native',
@@ -30,6 +31,7 @@ const statusStyle: Record<
 > = {
   live: { backgroundColor: colors.mintGreen, color: colors.forestInk },
   'journal-backed': { backgroundColor: colors.pastelGreen, color: colors.forestInk },
+  'user-confirmed': { backgroundColor: '#E8F4EE', color: colors.forestInk },
   derived: { backgroundColor: colors.pastelSage, color: colors.forestInk },
   estimated: { backgroundColor: colors.mist, color: colors.deepTeal },
   'native-required': { backgroundColor: '#EAF0EC', color: colors.warmGray },
@@ -38,7 +40,13 @@ const statusStyle: Record<
 
 export const MetricReadinessScreen = () => {
   const navigation = useNavigation<any>();
-  const { todayMetrics, liveSignalState, permissionDiagnostics, breakdownHistory } =
+  const {
+    todayMetrics,
+    liveSignalState,
+    permissionDiagnostics,
+    breakdownHistory,
+    deviceProfile,
+  } =
     useAppContext();
 
   const readinessItems = useMemo(
@@ -51,8 +59,11 @@ export const MetricReadinessScreen = () => {
           metrics: item.metrics,
           savedAt: item.metrics.date,
         })),
+        userConfirmedKeys: deviceProfile.customizedKeys.filter(
+          (key): key is Exclude<keyof typeof todayMetrics, 'date'> => key !== 'date',
+        ),
       }),
-    [breakdownHistory, liveSignalState, permissionDiagnostics, todayMetrics],
+    [breakdownHistory, deviceProfile.customizedKeys, liveSignalState, permissionDiagnostics, todayMetrics],
   );
 
   const summary = useMemo(
@@ -94,14 +105,14 @@ export const MetricReadinessScreen = () => {
             <Text style={styles.summaryLabel}>Estimated</Text>
           </View>
           <View>
+            <Text style={styles.summaryValue}>{summary.byStatus['user-confirmed']}</Text>
+            <Text style={styles.summaryLabel}>Profile</Text>
+          </View>
+          <View>
             <Text style={styles.summaryValue}>
               {summary.byStatus['native-required']}
             </Text>
             <Text style={styles.summaryLabel}>Native</Text>
-          </View>
-          <View>
-            <Text style={styles.summaryValue}>{summary.byStatus.blocked}</Text>
-            <Text style={styles.summaryLabel}>Blocked</Text>
           </View>
         </View>
         <Text style={styles.body}>

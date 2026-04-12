@@ -12,6 +12,7 @@ type MetricKey = Exclude<keyof DailyMetrics, 'date'>;
 export type MetricReadinessStatus =
   | 'live'
   | 'journal-backed'
+  | 'user-confirmed'
   | 'derived'
   | 'estimated'
   | 'native-required'
@@ -115,10 +116,11 @@ const nativeMetricFieldByMetricKey: Partial<Record<MetricKey, string>> = {
 const statusRank: Record<MetricReadinessStatus, number> = {
   live: 0,
   'journal-backed': 1,
-  derived: 2,
-  estimated: 3,
-  'native-required': 4,
-  blocked: 5,
+  'user-confirmed': 2,
+  derived: 3,
+  estimated: 4,
+  'native-required': 5,
+  blocked: 6,
 };
 
 const getDiagnosticStatus = (
@@ -148,16 +150,19 @@ const buildStatus = ({
   liveSignalState,
   diagnostics,
   historySnapshots,
+  userConfirmedKeys,
 }: {
   key: MetricKey;
   metrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   diagnostics: PermissionDiagnostic[];
   historySnapshots: HistorySnapshot[];
+  userConfirmedKeys: MetricKey[];
 }): Omit<MetricReadinessItem, 'key' | 'label' | 'group' | 'valuePreview'> => {
   const screenTimePermission = getDiagnosticStatus(diagnostics, 'screenTime');
   const motionPermission = getDiagnosticStatus(diagnostics, 'motion');
   const locationPermission = getDiagnosticStatus(diagnostics, 'location');
+  const isUserConfirmed = userConfirmedKeys.includes(key);
   const hasNativeMetric = (() => {
     const nativeField = nativeMetricFieldByMetricKey[key];
     return nativeField
@@ -301,6 +306,14 @@ const buildStatus = ({
     case 'heavyAppOpens':
     case 'unusedAppsCount':
     case 'notificationsPerDay':
+      if (key === 'notificationsPerDay' && isUserConfirmed && !hasNativeMetric) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Notification load is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module' && hasNativeMetric) {
         return {
           status: 'live',
@@ -389,6 +402,14 @@ const buildStatus = ({
 
     case 'widgetCount':
     case 'liveWallpaperEnabled':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       return {
         status: 'native-required',
         sourceLabel: 'native collector needed',
@@ -680,6 +701,14 @@ const buildStatus = ({
       };
 
     case 'vpnUsageTime':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'VPN usage is being filled from the user-confirmed device profile.',
+        };
+      }
+
       return {
         status: 'estimated',
         sourceLabel: 'deterministic fallback',
@@ -734,11 +763,13 @@ export const buildMetricReadiness = ({
   liveSignalState,
   diagnostics,
   historySnapshots = [],
+  userConfirmedKeys = [],
 }: {
   metrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   diagnostics: PermissionDiagnostic[];
   historySnapshots?: HistorySnapshot[];
+  userConfirmedKeys?: MetricKey[];
 }): MetricReadinessItem[] =>
   metricDefinitions
     .map((definition) => ({
@@ -749,6 +780,7 @@ export const buildMetricReadiness = ({
         liveSignalState,
         diagnostics,
         historySnapshots,
+        userConfirmedKeys,
       }),
       valuePreview: formatValuePreview(metrics[definition.key]),
     }))
@@ -772,6 +804,7 @@ export const summarizeMetricReadiness = (
   const byStatus: MetricReadinessSummary['byStatus'] = {
     live: 0,
     'journal-backed': 0,
+    'user-confirmed': 0,
     derived: 0,
     estimated: 0,
     'native-required': 0,
@@ -783,7 +816,7 @@ export const summarizeMetricReadiness = (
   }
 
   const productionReadyMetrics =
-    byStatus.live + byStatus['journal-backed'] + byStatus.derived;
+    byStatus.live + byStatus['journal-backed'] + byStatus['user-confirmed'] + byStatus.derived;
   const totalMetrics = items.length;
 
   return {

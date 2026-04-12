@@ -6,6 +6,7 @@ export type RootStackParamList = {
   BridgeStatus: undefined;
   UsageAccess: undefined;
   AppClassifier: undefined;
+  DeviceProfile: undefined;
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;
