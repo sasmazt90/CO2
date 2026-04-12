@@ -9,6 +9,7 @@ const KEEP_DAYS = 7;
 const MIN_SAMPLE_GAP_MINUTES = 4;
 const MAX_INFERRED_INTERVAL_MINUTES = 90;
 const MIN_DERIVED_COVERAGE_MINUTES = 30;
+const MIN_OVERNIGHT_COVERAGE_MINUTES = 20;
 
 export type BatteryJournalSource =
   | 'sync'
@@ -135,6 +136,91 @@ const overlapWithNightWindow = (
   return Math.round((overlapEnd - overlapStart) / 60000);
 };
 
+const getNightWindowBounds = (dateISO: string) => ({
+  start: new Date(`${dateISO}T00:00:00`),
+  end: new Date(`${dateISO}T06:00:00`),
+});
+
+const findBatteryLevelNearTime = (
+  entries: BatteryJournalEntry[],
+  target: Date,
+) => {
+  if (entries.length === 0) {
+    return undefined;
+  }
+
+  let bestEntry = entries[0];
+  let bestDistance = Math.abs(
+    new Date(bestEntry.timestamp).getTime() - target.getTime(),
+  );
+
+  for (const entry of entries) {
+    const distance = Math.abs(
+      new Date(entry.timestamp).getTime() - target.getTime(),
+    );
+
+    if (distance < bestDistance) {
+      bestEntry = entry;
+      bestDistance = distance;
+    }
+  }
+
+  return bestEntry.batteryLevel;
+};
+
+const calculateOvernightDrainScore = ({
+  entries,
+  dateISO,
+}: {
+  entries: BatteryJournalEntry[];
+  dateISO: string;
+}) => {
+  if (entries.length < 2) {
+    return null;
+  }
+
+  const { start, end } = getNightWindowBounds(dateISO);
+  let coveredMinutes = 0;
+
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const entryStart = new Date(entry.timestamp);
+    const rawEnd =
+      index < entries.length - 1
+        ? new Date(entries[index + 1].timestamp)
+        : end;
+    const intervalMinutes = Math.min(
+      differenceInMinutes(entryStart, rawEnd),
+      MAX_INFERRED_INTERVAL_MINUTES,
+    );
+    const entryEnd = new Date(
+      entryStart.getTime() + intervalMinutes * 60000,
+    );
+
+    coveredMinutes += overlapWithNightWindow(entryStart, entryEnd, dateISO);
+  }
+
+  if (coveredMinutes < MIN_OVERNIGHT_COVERAGE_MINUTES) {
+    return null;
+  }
+
+  const startLevel = findBatteryLevelNearTime(entries, start);
+  const endLevel = findBatteryLevelNearTime(entries, end);
+
+  if (startLevel === undefined || endLevel === undefined) {
+    return null;
+  }
+
+  const drainPercent = Math.max(0, Math.round((startLevel - endLevel) * 100));
+  const drainScore = Math.max(0, Math.round(drainPercent / 2));
+
+  return {
+    drainPercent,
+    drainScore,
+    coveredMinutes,
+  };
+};
+
 export const recordBatterySnapshot = async ({
   batteryLevel,
   batteryState,
@@ -168,7 +254,8 @@ export const buildBatteryJournalSummary = async (
   now = new Date(),
 ): Promise<BatteryJournalSummary> =>
   enqueueJournalTask(async () => {
-    const entries = (await loadBatteryJournal()).filter(
+    const allEntries = await loadBatteryJournal();
+    const entries = allEntries.filter(
       (entry) => getLocalISODate(new Date(entry.timestamp)) === dateISO,
     );
 
@@ -264,6 +351,43 @@ export const buildBatteryJournalSummary = async (
       };
     }
 
+    const overnightSamples = allEntries
+      .filter((entry) => getLocalISODate(new Date(entry.timestamp)) === dateISO)
+      .sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+    const overnightToday = calculateOvernightDrainScore({
+      entries: overnightSamples,
+      dateISO,
+    });
+    const historicalOvernightScores = Array.from(
+      new Set(
+        allEntries
+          .map((entry) => getLocalISODate(new Date(entry.timestamp)))
+          .filter((entryDate) => entryDate !== dateISO),
+      ),
+    )
+      .map((entryDate) =>
+        calculateOvernightDrainScore({
+          entries: allEntries.filter(
+            (entry) => getLocalISODate(new Date(entry.timestamp)) === entryDate,
+          ),
+          dateISO: entryDate,
+        }),
+      )
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    const sleepBaseline =
+      historicalOvernightScores.length > 0
+        ? Math.max(
+            1,
+            Math.round(
+              historicalOvernightScores.reduce(
+                (sum, item) => sum + item.drainScore,
+                0,
+              ) / historicalOvernightScores.length,
+            ),
+          )
+        : undefined;
+
     return {
       metricPatch: {
         chargeSessions,
@@ -271,11 +395,19 @@ export const buildBatteryJournalSummary = async (
         timeAt100WhilePlugged,
         timeBelow20,
         timeAbove80,
+        ...(overnightToday
+          ? {
+              sleepEnergy: overnightToday.drainScore,
+              sleepBaseline: sleepBaseline ?? Math.max(1, overnightToday.drainScore),
+            }
+          : {}),
       },
       sampleCount,
       lastSampleAt,
       derivedFromJournal: true,
-      note: `Battery journal contributed ${sampleCount} local samples to today's charging metrics.`,
+      note: overnightToday
+        ? `Battery journal contributed ${sampleCount} local samples and reconstructed overnight drain from ${overnightToday.coveredMinutes} minutes of sleep-window coverage.`
+        : `Battery journal contributed ${sampleCount} local samples to today's charging metrics.`,
     };
   });
 

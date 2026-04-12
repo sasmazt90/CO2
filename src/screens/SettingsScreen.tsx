@@ -111,7 +111,7 @@ export const SettingsScreen = () => {
           <Text style={styles.body}>
             Battery journal: {liveSignalState.batteryJournalSamples} samples today
             {liveSignalState.batteryJournalDerived
-              ? ' | charging metrics are journal-backed'
+              ? ' | charging and overnight drain metrics are journal-backed'
               : ''}
           </Text>
         ) : null}

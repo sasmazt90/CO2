@@ -383,9 +383,23 @@ const buildStatus = ({
         summary: 'Biometric unlock counts are still represented with prototype values.',
       };
 
-    case 'idleScreenOn':
     case 'sleepEnergy':
     case 'sleepBaseline':
+      if (liveSignalState.batteryJournalDerived) {
+        return {
+          status: 'journal-backed',
+          sourceLabel: 'battery journal',
+          summary: 'Overnight battery behavior is being reconstructed from local battery history.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'Sleep-window battery drain still uses fallback values until the journal has enough coverage.',
+      };
+
+    case 'idleScreenOn':
     case 'largeMobileTransfers':
     case 'cloudSyncSessions':
     case 'autoplayVideosCount':
