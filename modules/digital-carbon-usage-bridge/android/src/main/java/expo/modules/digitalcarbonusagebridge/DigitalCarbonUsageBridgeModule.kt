@@ -21,6 +21,10 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "screenTimeMinutes",
     "socialMediaMinutes",
     "videoStreamingMinutes",
+    "musicListeningMinutes",
+    "navigationMinutes",
+    "cameraMinutes",
+    "arUsageMinutes",
     "heavyAppOpens",
     "unusedAppsCount",
     "mobileDataUsageMb"
@@ -79,6 +83,64 @@ class DigitalCarbonUsageBridgeModule : Module() {
     "plex",
     "video",
     "player"
+  )
+
+  private val musicPackages = listOf(
+    "com.spotify.music",
+    "com.apple.android.music",
+    "com.google.android.apps.youtube.music",
+    "deezer.android.app",
+    "com.soundcloud.android",
+    "com.amazon.mp3",
+    "com.bandcamp.android",
+    "com.pandora.android",
+    "com.aspiro.tidal",
+    "spotify",
+    "music",
+    "soundcloud",
+    "deezer",
+    "tidal",
+    "pandora",
+    "bandcamp",
+    "audio"
+  )
+
+  private val navigationPackages = listOf(
+    "com.google.android.apps.maps",
+    "com.waze",
+    "com.here.app.maps",
+    "com.tomtom.gplay.navapp",
+    "com.sygic.aura",
+    "maps",
+    "waze",
+    "nav",
+    "navigation",
+    "sygic",
+    "tomtom"
+  )
+
+  private val cameraPackages = listOf(
+    "com.android.camera",
+    "com.google.android.GoogleCamera",
+    "com.sec.android.app.camera",
+    "com.oplus.camera",
+    "com.oneplus.camera",
+    "com.miui.camera",
+    "camera",
+    "cam",
+    "gcam"
+  )
+
+  private val arPackages = listOf(
+    "com.nianticlabs.pokemongo",
+    "com.google.ar.core",
+    "com.microsoft.mesh",
+    "com.ikea.place",
+    "pokemon",
+    "arcore",
+    "augmented",
+    "spatial",
+    "ar."
   )
 
   override fun definition() = ModuleDefinition {
@@ -177,12 +239,28 @@ class DigitalCarbonUsageBridgeModule : Module() {
     val videoMinutes = filteredStats
       .filter { matchesAny(it.packageName ?: "", videoPackages) }
       .sumOf { it.totalTimeInForeground } / 60000.0
+    val musicMinutes = filteredStats
+      .filter { matchesAny(it.packageName ?: "", musicPackages) }
+      .sumOf { it.totalTimeInForeground } / 60000.0
+    val navigationMinutes = filteredStats
+      .filter { matchesAny(it.packageName ?: "", navigationPackages) }
+      .sumOf { it.totalTimeInForeground } / 60000.0
+    val cameraMinutes = filteredStats
+      .filter { matchesAny(it.packageName ?: "", cameraPackages) }
+      .sumOf { it.totalTimeInForeground } / 60000.0
+    val arUsageMinutes = filteredStats
+      .filter { matchesAny(it.packageName ?: "", arPackages) }
+      .sumOf { it.totalTimeInForeground } / 60000.0
 
     val snapshot = mutableMapOf<String, Any>(
       "collectedAt" to formatUtc(end),
       "screenTimeMinutes" to totalForegroundMinutes,
       "socialMediaMinutes" to socialMinutes,
       "videoStreamingMinutes" to videoMinutes,
+      "musicListeningMinutes" to musicMinutes,
+      "navigationMinutes" to navigationMinutes,
+      "cameraMinutes" to cameraMinutes,
+      "arUsageMinutes" to arUsageMinutes,
       "heavyAppOpens" to countHeavyAppForegroundEvents(usageStatsManager, start, end),
       "unusedAppsCount" to unusedAppsCount,
       "observedAppsCount" to filteredStats.size,

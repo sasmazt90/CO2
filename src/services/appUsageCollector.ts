@@ -9,6 +9,10 @@ type NativeMetricField =
   | 'screenTimeMinutes'
   | 'socialMediaMinutes'
   | 'videoStreamingMinutes'
+  | 'musicListeningMinutes'
+  | 'navigationMinutes'
+  | 'cameraMinutes'
+  | 'arUsageMinutes'
   | 'heavyAppOpens'
   | 'unusedAppsCount'
   | 'mobileDataUsageMb'
@@ -39,6 +43,10 @@ const nativeMetricMap: Partial<Record<NativeMetricField, keyof DailyMetrics>> = 
   screenTimeMinutes: 'screenTime',
   socialMediaMinutes: 'socialMediaTime',
   videoStreamingMinutes: 'videoStreamingTime',
+  musicListeningMinutes: 'musicListeningTime',
+  navigationMinutes: 'navigationTime',
+  cameraMinutes: 'cameraUsage',
+  arUsageMinutes: 'arAppUsage',
   heavyAppOpens: 'heavyAppOpens',
   unusedAppsCount: 'unusedAppsCount',
   mobileDataUsageMb: 'mobileDataUsage',

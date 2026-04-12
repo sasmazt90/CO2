@@ -3,6 +3,10 @@ export interface DigitalCarbonUsageSnapshot {
   screenTimeMinutes?: number;
   socialMediaMinutes?: number;
   videoStreamingMinutes?: number;
+  musicListeningMinutes?: number;
+  navigationMinutes?: number;
+  cameraMinutes?: number;
+  arUsageMinutes?: number;
   heavyAppOpens?: number;
   unusedAppsCount?: number;
   mobileDataUsageMb?: number;

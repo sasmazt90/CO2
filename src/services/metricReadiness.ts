@@ -102,6 +102,10 @@ const nativeMetricFieldByMetricKey: Partial<Record<MetricKey, string>> = {
   screenTime: 'screenTimeMinutes',
   socialMediaTime: 'socialMediaMinutes',
   videoStreamingTime: 'videoStreamingMinutes',
+  musicListeningTime: 'musicListeningMinutes',
+  navigationTime: 'navigationMinutes',
+  cameraUsage: 'cameraMinutes',
+  arAppUsage: 'arUsageMinutes',
   heavyAppOpens: 'heavyAppOpens',
   unusedAppsCount: 'unusedAppsCount',
   mobileDataUsage: 'mobileDataUsageMb',
@@ -253,6 +257,18 @@ const buildStatus = ({
     case 'locationRequests':
     case 'locationAlwaysOnApps':
     case 'navigationTime':
+      if (
+        key === 'navigationTime' &&
+        liveSignalState.appUsageSource === 'native-module' &&
+        hasNativeMetric
+      ) {
+        return {
+          status: 'live',
+          sourceLabel: 'native usage bridge',
+          summary: 'Navigation usage is coming from device-wide foreground time in navigation apps.',
+        };
+      }
+
       if (liveSignalState.locationEnabled) {
         return {
           status: 'derived',
@@ -358,14 +374,28 @@ const buildStatus = ({
     case 'liveWallpaperEnabled':
     case 'speakerCallTime':
     case 'avgMusicVolume':
-    case 'musicListeningTime':
     case 'singleCallDuration':
     case 'callCount':
     case 'btAudioTime':
-    case 'cameraUsage':
     case 'recorded4KVideo':
     case 'gyroActiveApps':
+      return {
+        status: 'native-required',
+        sourceLabel: 'native collector needed',
+        summary: 'This signal still needs a deeper platform-specific collector for production accuracy.',
+      };
+
+    case 'musicListeningTime':
+    case 'cameraUsage':
     case 'arAppUsage':
+      if (liveSignalState.appUsageSource === 'native-module' && hasNativeMetric) {
+        return {
+          status: 'live',
+          sourceLabel: 'native usage bridge',
+          summary: 'This metric is coming from native device-wide foreground usage classification.',
+        };
+      }
+
       return {
         status: 'native-required',
         sourceLabel: 'native collector needed',
