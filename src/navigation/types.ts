@@ -2,6 +2,7 @@ export type RootStackParamList = {
   MainTabs: undefined;
   Method: undefined;
   DataSources: undefined;
+  MetricReadiness: undefined;
   BridgeStatus: undefined;
   UsageAccess: undefined;
   AppClassifier: undefined;

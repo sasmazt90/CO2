@@ -37,8 +37,8 @@ export const DataSourcesScreen = () => {
           title="Data Sources"
           subtitle="Which metric families are live, estimated, blocked, or waiting on native bridges"
           action={
-            <Pressable onPress={() => navigation.navigate('BridgeStatus')}>
-              <Text style={styles.link}>Bridge Status</Text>
+            <Pressable onPress={() => navigation.navigate('MetricReadiness')}>
+              <Text style={styles.link}>Metric Audit</Text>
             </Pressable>
           }
         />
@@ -72,6 +72,12 @@ export const DataSourcesScreen = () => {
           more outcomes, while blocked or unavailable access affects{' '}
           {summary.needsAccessOutcomes}.
         </Text>
+        <Pressable
+          onPress={() => navigation.navigate('BridgeStatus')}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryButtonText}>Open Bridge Status</Text>
+        </Pressable>
       </SurfaceCard>
 
       {collectorCapabilities.map((capability) => (
@@ -104,6 +110,20 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
+  },
+  secondaryButton: {
+    alignSelf: 'flex-start',
+    borderColor: colors.softTeal,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  secondaryButtonText: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
   },
   summaryValue: {
     color: colors.forestInk,

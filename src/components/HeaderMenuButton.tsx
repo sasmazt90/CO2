@@ -9,6 +9,7 @@ import { typography } from '../theme/typography';
 
 const menuItems = [
   { label: 'Data Sources', route: 'DataSources' },
+  { label: 'Metric Readiness', route: 'MetricReadiness' },
   { label: 'Bridge Status', route: 'BridgeStatus' },
   { label: 'Usage Access', route: 'UsageAccess' },
   { label: 'Usage Classifier', route: 'AppClassifier' },

@@ -22,6 +22,7 @@ import { FriendsScreen } from '../screens/FriendsScreen';
 import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
+import { MetricReadinessScreen } from '../screens/MetricReadinessScreen';
 import { MethodScreen } from '../screens/MethodScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
@@ -110,6 +111,11 @@ export const AppNavigator = () => {
         >
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="DataSources" component={DataSourcesScreen} options={{ title: 'Data Sources' }} />
+          <Stack.Screen
+            name="MetricReadiness"
+            component={MetricReadinessScreen}
+            options={{ title: 'Metric Readiness' }}
+          />
           <Stack.Screen name="BridgeStatus" component={BridgeStatusScreen} options={{ title: 'Bridge Status' }} />
           <Stack.Screen name="UsageAccess" component={UsageAccessScreen} options={{ title: 'Usage Access' }} />
           <Stack.Screen name="AppClassifier" component={AppClassifierScreen} options={{ title: 'Usage Classifier' }} />

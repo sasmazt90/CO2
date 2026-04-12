@@ -72,6 +72,12 @@ export const SettingsScreen = () => {
           Live coverage: {coverageSummary.byStatus.live.outcomeCount}/
           {coverageSummary.totalOutcomes} outcomes
         </Text>
+        <Pressable
+          onPress={() => navigation.navigate('MetricReadiness')}
+          style={styles.secondaryButton}
+        >
+          <Text style={styles.secondaryButtonText}>Open Metric Readiness</Text>
+        </Pressable>
         <Pressable onPress={() => navigation.navigate('DataSources')} style={styles.secondaryButton}>
           <Text style={styles.secondaryButtonText}>Open Data Sources</Text>
         </Pressable>
