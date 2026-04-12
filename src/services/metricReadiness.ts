@@ -449,6 +449,14 @@ const buildStatus = ({
       };
 
     case 'avgTemp':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Device temperature is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (
         liveSignalState.appUsageSource === 'native-module' ||
         liveSignalState.appUsageSource === 'app-session-journal'
@@ -502,6 +510,14 @@ const buildStatus = ({
     case 'musicListeningTime':
     case 'cameraUsage':
     case 'arAppUsage':
+      if (isUserConfirmed) {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'This metric is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (liveSignalState.appUsageSource === 'native-module' && hasNativeMetric) {
         return {
           status: 'live',
@@ -708,6 +724,14 @@ const buildStatus = ({
     case 'duplicateMedia':
     case 'compressionTasks':
     case 'proximityActiveTime':
+      if (isUserConfirmed && key === 'proximityActiveTime') {
+        return {
+          status: 'user-confirmed',
+          sourceLabel: 'device profile',
+          summary: 'Proximity sensor activity is being filled from the user-confirmed device profile.',
+        };
+      }
+
       if (
         liveSignalState.appUsageSource === 'native-module' ||
         liveSignalState.appUsageSource === 'app-session-journal'

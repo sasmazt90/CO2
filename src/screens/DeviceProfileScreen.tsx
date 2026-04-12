@@ -16,6 +16,7 @@ type SliderControlKey =
   | 'backgroundComputeTime'
   | 'btOnTime'
   | 'btActiveDevices'
+  | 'avgTemp'
   | 'cpuHighUsage'
   | 'cloudSyncSessions'
   | 'mobileUpdatesData'
@@ -30,10 +31,14 @@ type SliderControlKey =
   | 'vpnUsageTime'
   | 'speakerCallTime'
   | 'avgMusicVolume'
+  | 'musicListeningTime'
   | 'singleCallDuration'
   | 'callCount'
   | 'btAudioTime'
+  | 'cameraUsage'
+  | 'arAppUsage'
   | 'gyroActiveApps'
+  | 'proximityActiveTime'
   | 'faceIDUnlocks'
   | 'notificationsPerDay';
 
@@ -55,6 +60,7 @@ const visualControls: SliderControl[] = [
 ];
 
 const systemControls: SliderControl[] = [
+  { key: 'avgTemp', label: 'Typical device temperature', min: 30, max: 45, step: 1, suffix: ' C' },
   { key: 'backgroundActiveApps', label: 'Background active apps', min: 0, max: 20, step: 1, suffix: '' },
   { key: 'backgroundComputeTime', label: 'Background compute time', min: 0, max: 240, step: 5, suffix: ' min' },
   { key: 'cpuHighUsage', label: 'CPU spike count', min: 0, max: 24, step: 1, suffix: '' },
@@ -74,6 +80,7 @@ const networkControls: SliderControl[] = [
 const audioControls: SliderControl[] = [
   { key: 'speakerCallTime', label: 'Speakerphone minutes', min: 0, max: 60, step: 5, suffix: ' min' },
   { key: 'avgMusicVolume', label: 'Typical music volume', min: 0, max: 1, step: 0.05, suffix: '' },
+  { key: 'musicListeningTime', label: 'Music listening time', min: 0, max: 360, step: 5, suffix: ' min' },
   { key: 'singleCallDuration', label: 'Longest call', min: 0, max: 120, step: 5, suffix: ' min' },
   { key: 'callCount', label: 'Call count', min: 0, max: 20, step: 1, suffix: '' },
   { key: 'btAudioTime', label: 'Bluetooth audio minutes', min: 0, max: 360, step: 5, suffix: ' min' },
@@ -88,7 +95,10 @@ const cloudControls: SliderControl[] = [
 ];
 
 const sensorControls: SliderControl[] = [
+  { key: 'cameraUsage', label: 'Camera usage', min: 0, max: 180, step: 5, suffix: ' min' },
+  { key: 'arAppUsage', label: 'AR usage', min: 0, max: 90, step: 5, suffix: ' min' },
   { key: 'gyroActiveApps', label: 'Gyro-heavy app sessions', min: 0, max: 12, step: 1, suffix: '' },
+  { key: 'proximityActiveTime', label: 'Proximity active time', min: 0, max: 120, step: 5, suffix: ' min' },
   { key: 'faceIDUnlocks', label: 'Biometric unlock count', min: 0, max: 150, step: 1, suffix: '' },
 ];
 
@@ -106,6 +116,7 @@ export const DeviceProfileScreen = () => {
   const [draft, setDraft] = useState<Partial<DailyMetrics>>({
     backgroundActiveApps: todayMetrics.backgroundActiveApps,
     backgroundComputeTime: todayMetrics.backgroundComputeTime,
+    avgTemp: todayMetrics.avgTemp,
     btOnTime: todayMetrics.btOnTime,
     btActiveDevices: todayMetrics.btActiveDevices,
     cpuHighUsage: todayMetrics.cpuHighUsage,
@@ -123,11 +134,15 @@ export const DeviceProfileScreen = () => {
     vpnUsageTime: todayMetrics.vpnUsageTime,
     speakerCallTime: todayMetrics.speakerCallTime,
     avgMusicVolume: todayMetrics.avgMusicVolume,
+    musicListeningTime: todayMetrics.musicListeningTime,
     singleCallDuration: todayMetrics.singleCallDuration,
     callCount: todayMetrics.callCount,
     btAudioTime: todayMetrics.btAudioTime,
     recorded4KVideo: todayMetrics.recorded4KVideo,
+    cameraUsage: todayMetrics.cameraUsage,
+    arAppUsage: todayMetrics.arAppUsage,
     gyroActiveApps: todayMetrics.gyroActiveApps,
+    proximityActiveTime: todayMetrics.proximityActiveTime,
     faceIDUnlocks: todayMetrics.faceIDUnlocks,
     notificationsPerDay: todayMetrics.notificationsPerDay,
     ...deviceProfile.patch,

@@ -194,6 +194,7 @@ export const buildCollectorCapabilities = ({
       status: hasUserConfirmed(
         'speakerCallTime',
         'avgMusicVolume',
+        'musicListeningTime',
         'singleCallDuration',
         'callCount',
         'btAudioTime',
@@ -206,6 +207,7 @@ export const buildCollectorCapabilities = ({
         hasUserConfirmed(
           'speakerCallTime',
           'avgMusicVolume',
+          'musicListeningTime',
           'singleCallDuration',
           'callCount',
           'btAudioTime',
@@ -257,11 +259,25 @@ export const buildCollectorCapabilities = ({
       id: 'camera-ar-sensors',
       title: 'Camera, AR, and Sensor Bursts',
       group: 'Processing & Sensors',
-      status: hasUserConfirmed('recorded4KVideo', 'gyroActiveApps', 'faceIDUnlocks')
+      status: hasUserConfirmed(
+        'recorded4KVideo',
+        'gyroActiveApps',
+        'faceIDUnlocks',
+        'cameraUsage',
+        'arAppUsage',
+        'proximityActiveTime',
+      )
         ? 'live'
         : 'estimated',
       summary:
-        hasUserConfirmed('recorded4KVideo', 'gyroActiveApps', 'faceIDUnlocks')
+        hasUserConfirmed(
+          'recorded4KVideo',
+          'gyroActiveApps',
+          'faceIDUnlocks',
+          'cameraUsage',
+          'arAppUsage',
+          'proximityActiveTime',
+        )
           ? 'Camera and sensor burst metrics are completed with explicit user-confirmed values plus observed usage.'
           : 'Current scoring can represent this family, but fine-grained capture still uses prototype values.',
       detail:
