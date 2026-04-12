@@ -37,6 +37,7 @@ import {
   saveHistorySnapshots,
   upsertTodaySnapshot,
 } from '../services/historyService';
+import { deriveMetricBaselines } from '../services/metricBaselines';
 import { buildNotificationFeed, syncLocalNotifications } from '../services/notificationService';
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
@@ -434,9 +435,20 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
+  const todayMetrics = useMemo(
+    () => ({
+      ...currentTodayMetrics,
+      ...deriveMetricBaselines({
+        currentMetrics: currentTodayMetrics,
+        historySnapshots,
+      }),
+    }),
+    [currentTodayMetrics, historySnapshots],
+  );
+
   const todayBreakdown = useMemo(
-    () => evaluateCarbonScore(currentTodayMetrics),
-    [currentTodayMetrics],
+    () => evaluateCarbonScore(todayMetrics),
+    [todayMetrics],
   );
 
   const collectorCapabilities = useMemo(
@@ -519,7 +531,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       permissions,
       breakdownHistory,
       todayBreakdown,
-      todayMetrics: currentTodayMetrics,
+      todayMetrics,
       liveSignalState,
       permissionDiagnostics,
       collectorCapabilities,
@@ -548,7 +560,6 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     [
       badges,
       carbonPoints,
-      currentTodayMetrics,
       hasCompletedOnboarding,
       joinedChallenges,
       liveSignalState,
@@ -560,6 +571,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       ready,
       streakDays,
       todayBreakdown,
+      todayMetrics,
       weeklyAverageScore,
     ],
   );

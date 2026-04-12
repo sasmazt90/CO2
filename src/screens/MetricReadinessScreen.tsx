@@ -38,7 +38,8 @@ const statusStyle: Record<
 
 export const MetricReadinessScreen = () => {
   const navigation = useNavigation<any>();
-  const { todayMetrics, liveSignalState, permissionDiagnostics } = useAppContext();
+  const { todayMetrics, liveSignalState, permissionDiagnostics, breakdownHistory } =
+    useAppContext();
 
   const readinessItems = useMemo(
     () =>
@@ -46,8 +47,12 @@ export const MetricReadinessScreen = () => {
         metrics: todayMetrics,
         liveSignalState,
         diagnostics: permissionDiagnostics,
+        historySnapshots: breakdownHistory.map((item) => ({
+          metrics: item.metrics,
+          savedAt: item.metrics.date,
+        })),
       }),
-    [liveSignalState, permissionDiagnostics, todayMetrics],
+    [breakdownHistory, liveSignalState, permissionDiagnostics, todayMetrics],
   );
 
   const summary = useMemo(

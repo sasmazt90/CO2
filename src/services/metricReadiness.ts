@@ -1,9 +1,11 @@
 import {
   DailyMetrics,
+  HistorySnapshot,
   LiveSignalState,
   PermissionDiagnostic,
   ScoreGroup,
 } from '../engine/types';
+import { hasDerivedMetricBaseline } from './metricBaselines';
 
 type MetricKey = Exclude<keyof DailyMetrics, 'date'>;
 
@@ -141,11 +143,13 @@ const buildStatus = ({
   metrics,
   liveSignalState,
   diagnostics,
+  historySnapshots,
 }: {
   key: MetricKey;
   metrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   diagnostics: PermissionDiagnostic[];
+  historySnapshots: HistorySnapshot[];
 }): Omit<MetricReadinessItem, 'key' | 'label' | 'group' | 'valuePreview'> => {
   const screenTimePermission = getDiagnosticStatus(diagnostics, 'screenTime');
   const motionPermission = getDiagnosticStatus(diagnostics, 'motion');
@@ -393,10 +397,87 @@ const buildStatus = ({
         };
       }
 
+      if (
+        hasDerivedMetricBaseline({
+          key: 'sleepBaseline',
+          currentMetrics: metrics,
+          historySnapshots,
+        })
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'history baseline',
+          summary: 'Sleep drain baseline is being derived from prior local days.',
+        };
+      }
+
       return {
         status: 'estimated',
         sourceLabel: 'deterministic fallback',
         summary: 'Sleep-window battery drain still uses fallback values until the journal has enough coverage.',
+      };
+
+    case 'backgroundComputeBaseline':
+      if (
+        hasDerivedMetricBaseline({
+          key: 'backgroundComputeBaseline',
+          currentMetrics: metrics,
+          historySnapshots,
+        })
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'history baseline',
+          summary: 'Background compute baseline is being derived from recent local days.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'Background compute baseline still uses fallback values.',
+      };
+
+    case 'proximityBaseline':
+      if (
+        hasDerivedMetricBaseline({
+          key: 'proximityBaseline',
+          currentMetrics: metrics,
+          historySnapshots,
+        })
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'history baseline',
+          summary: 'Proximity sensor baseline is being derived from recent local days.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'Proximity baseline still uses fallback values.',
+      };
+
+    case 'faceIDBaseline':
+      if (
+        hasDerivedMetricBaseline({
+          key: 'faceIDBaseline',
+          currentMetrics: metrics,
+          historySnapshots,
+        })
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'history baseline',
+          summary: 'FaceID baseline is being derived from recent local days.',
+        };
+      }
+
+      return {
+        status: 'estimated',
+        sourceLabel: 'deterministic fallback',
+        summary: 'FaceID baseline still uses fallback values.',
       };
 
     case 'idleScreenOn':
@@ -412,10 +493,7 @@ const buildStatus = ({
     case 'compressionTasks':
     case 'fastChargeSessions':
     case 'cpuHighUsage':
-    case 'backgroundComputeBaseline':
     case 'proximityActiveTime':
-    case 'proximityBaseline':
-    case 'faceIDBaseline':
     case 'radioHighPowerTime':
       return {
         status: 'estimated',
@@ -436,10 +514,12 @@ export const buildMetricReadiness = ({
   metrics,
   liveSignalState,
   diagnostics,
+  historySnapshots = [],
 }: {
   metrics: DailyMetrics;
   liveSignalState: LiveSignalState;
   diagnostics: PermissionDiagnostic[];
+  historySnapshots?: HistorySnapshot[];
 }): MetricReadinessItem[] =>
   metricDefinitions
     .map((definition) => ({
@@ -449,6 +529,7 @@ export const buildMetricReadiness = ({
         metrics,
         liveSignalState,
         diagnostics,
+        historySnapshots,
       }),
       valuePreview: formatValuePreview(metrics[definition.key]),
     }))
