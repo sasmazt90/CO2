@@ -83,6 +83,22 @@ export const MetricReadinessScreen = () => {
     return Array.from(groups.entries());
   }, [readinessItems]);
 
+  const profileLiftCandidates = useMemo(
+    () =>
+      readinessItems.filter(
+        (item) =>
+          item.status === 'estimated' &&
+          item.sourceLabel !== 'history baseline' &&
+          item.sourceLabel !== 'fallback',
+      ),
+    [readinessItems],
+  );
+
+  const profileLiftPreview = useMemo(
+    () => profileLiftCandidates.slice(0, 8).map((item) => item.label),
+    [profileLiftCandidates],
+  );
+
   return (
     <Screen>
       <SurfaceCard>
@@ -125,6 +141,37 @@ export const MetricReadinessScreen = () => {
           estimated, even if the rule engine already uses it.
         </Text>
       </SurfaceCard>
+
+      {profileLiftCandidates.length > 0 ? (
+        <SurfaceCard>
+          <SectionTitle
+            title="Quick Lift"
+            subtitle={`${profileLiftCandidates.length} estimated metrics can drop after filling Device Profile`}
+            action={
+              <Pressable onPress={() => navigation.navigate('DeviceProfile')}>
+                <Text style={styles.link}>Open Profile</Text>
+              </Pressable>
+            }
+          />
+          <Text style={styles.body}>
+            These metrics are still estimated mainly because their user-confirmed defaults
+            have not been filled yet.
+          </Text>
+          <View style={styles.chipWrap}>
+            {profileLiftPreview.map((label) => (
+              <View key={label} style={styles.chip}>
+                <Text style={styles.chipText}>{label}</Text>
+              </View>
+            ))}
+          </View>
+          {profileLiftCandidates.length > profileLiftPreview.length ? (
+            <Text style={styles.secondary}>
+              Plus {profileLiftCandidates.length - profileLiftPreview.length} more fields in
+              Device Profile.
+            </Text>
+          ) : null}
+        </SurfaceCard>
+      ) : null}
 
       {grouped.map(([group, items]) => (
         <SurfaceCard key={group}>
@@ -202,6 +249,23 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
+  },
+  chipWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+  },
+  chip: {
+    backgroundColor: '#E8F4EE',
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+  },
+  chipText: {
+    color: colors.forestInk,
+    fontFamily: typography.bodyMedium,
+    fontSize: 11,
   },
   metricList: {
     gap: spacing.sm,
