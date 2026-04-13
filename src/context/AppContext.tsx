@@ -31,6 +31,7 @@ import { collectDeviceSignalPatch } from '../services/deviceSignalCollector';
 import { buildCollectorCapabilities } from '../services/collectorCapabilities';
 import {
   deriveCompositeMetricsFromUsage,
+  derivePlatformSafeUsageMetrics,
   deriveProxyMetricsFromObservedSignals,
 } from '../services/derivedMetrics';
 import {
@@ -506,8 +507,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             ...usageSignals.statePatch,
           },
         });
+        const platformSafePatch = derivePlatformSafeUsageMetrics({
+          currentMetrics: {
+            ...mergedMetrics,
+            ...derivedPatch,
+          },
+          liveSignalState: {
+            ...liveSignalState,
+            ...usageSignals.statePatch,
+          },
+        });
         const nextMetrics = {
           ...mergedMetrics,
+          ...platformSafePatch,
           ...derivedPatch,
         };
         const proxyPatch = deriveProxyMetricsFromObservedSignals({

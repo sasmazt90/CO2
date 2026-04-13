@@ -362,6 +362,17 @@ const buildStatus = ({
         };
       }
 
+      if (
+        liveSignalState.appUsageSource === 'app-session-journal' &&
+        key !== 'notificationsPerDay'
+      ) {
+        return {
+          status: 'derived',
+          sourceLabel: 'journal + deterministic formulas',
+          summary: 'This usage metric is being derived from app sessions plus measurable device signals.',
+        };
+      }
+
       if (key === 'notificationsPerDay') {
         return {
           status: 'estimated',
@@ -555,6 +566,14 @@ const buildStatus = ({
           status: 'live',
           sourceLabel: 'native usage bridge',
           summary: 'This metric is coming from native device-wide foreground usage classification.',
+        };
+      }
+
+      if (liveSignalState.appUsageSource === 'app-session-journal') {
+        return {
+          status: 'derived',
+          sourceLabel: 'journal + deterministic formulas',
+          summary: 'This metric is being derived from app sessions, brightness, motion, and mobility signals.',
         };
       }
 

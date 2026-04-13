@@ -103,6 +103,79 @@ export const deriveCompositeMetricsFromUsage = ({
   return patch;
 };
 
+export const derivePlatformSafeUsageMetrics = ({
+  currentMetrics,
+  liveSignalState,
+}: {
+  currentMetrics: DailyMetrics;
+  liveSignalState: LiveSignalState;
+}): Partial<DailyMetrics> => {
+  if (liveSignalState.appUsageSource !== 'app-session-journal') {
+    return {};
+  }
+
+  const sessionMinutes = liveSignalState.appSessionMinutes ?? currentMetrics.screenTime;
+  const sessionCount = liveSignalState.appSessionCount ?? 0;
+  const brightness = liveSignalState.currentBrightness ?? currentMetrics.avgBrightness;
+  const steps = liveSignalState.stepsToday ?? currentMetrics.steps;
+  const mobilitySamples = liveSignalState.mobilityJournalSamples ?? 0;
+  const lowMovementFactor = steps < 3000 ? 1.15 : steps > 7000 ? 0.85 : 1;
+  const brightnessFactor = 0.7 + brightness * 0.8;
+  const mobilityFactor = liveSignalState.mobilityJournalDerived ? 1.05 : 0.92;
+
+  const socialMediaTime = clamp(
+    sessionMinutes * 0.32 * lowMovementFactor + sessionCount * 1.8,
+    0,
+    Math.max(sessionMinutes, 1),
+  );
+  const videoStreamingTime = clamp(
+    sessionMinutes * 0.22 * brightnessFactor + (steps < 2500 ? 10 : 0),
+    0,
+    Math.max(Math.round(sessionMinutes * 0.7), 1),
+  );
+  const musicListeningTime = clamp(
+    sessionMinutes * 0.18 + steps / 260 + sessionCount,
+    0,
+    360,
+  );
+  const cameraUsage = clamp(
+    sessionMinutes * 0.08 * brightnessFactor + sessionCount * 0.6,
+    0,
+    120,
+  );
+  const arAppUsage = clamp(
+    cameraUsage * 0.18 + currentMetrics.navigationTime * 0.15 + mobilitySamples * 0.2,
+    0,
+    45,
+  );
+  const heavyAppOpens = clamp(
+    sessionCount * 0.9 + sessionMinutes / 18,
+    0,
+    24,
+  );
+  const mobileDataUsage = clamp(
+    videoStreamingTime * 5.5 + socialMediaTime * 1.8 + currentMetrics.navigationTime * 1.4,
+    0,
+    1800,
+  );
+  const unusedAppsCount = clamp(
+    10 + sessionCount * 0.25 - sessionMinutes / 22,
+    0,
+    24,
+  );
+
+  return {
+    socialMediaTime,
+    videoStreamingTime,
+    musicListeningTime,
+    cameraUsage,
+    arAppUsage,
+    heavyAppOpens,
+    mobileDataUsage,
+    unusedAppsCount: clamp(unusedAppsCount * mobilityFactor, 0, 24),
+  };
+};
+
 export const deriveProxyMetricsFromObservedSignals = ({
   currentMetrics,
   liveSignalState,
