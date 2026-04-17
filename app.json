@@ -3,6 +3,10 @@
     "name": "Digital Carbon Footprint Score",
     "slug": "digital-carbon-footprint-score",
     "version": "1.0.0",
+    "scheme": "carbonscore",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +18,11 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sasmazt90.digitalcarbonfootprintscore"
+      "bundleIdentifier": "com.sasmazt90.digitalcarbonfootprintscore",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Digital Carbon Footprint Score uses foreground location to estimate mobility patterns and encourage lower-carbon travel habits.",
+        "NSMotionUsageDescription": "Digital Carbon Footprint Score uses motion activity to estimate steps and calmer movement patterns in your daily carbon score."
+      }
     },
     "android": {
       "package": "com.sasmazt90.digitalcarbonfootprintscore",
@@ -22,6 +30,12 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F8FAF7"
       },
+      "permissions": [
+        "POST_NOTIFICATIONS",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACTIVITY_RECOGNITION"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },

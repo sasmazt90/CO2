@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { challenges } from '../data/challenges';
 import {
@@ -50,6 +50,10 @@ import {
   saveDeviceProfile,
 } from '../services/deviceProfileService';
 import {
+  pullDesktopSyncState,
+  pushDesktopSyncState,
+} from '../services/desktopSyncService';
+import {
   buildMobilityJournalSummary,
   startMobilityJournalListeners,
 } from '../services/mobilityJournalService';
@@ -83,6 +87,7 @@ interface AppContextValue {
   deviceProfile: DeviceProfile;
   socialProfile: LocalSocialProfile;
   socialSyncStatus: 'idle' | 'syncing' | 'ready' | 'error';
+  desktopSyncStatus: 'idle' | 'syncing' | 'ready' | 'error';
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
   weeklyAverageScore: number;
@@ -108,6 +113,7 @@ interface AppContextValue {
     customizedKeys: Array<keyof DailyMetrics>,
   ) => Promise<void>;
   syncSocialGraph: () => Promise<void>;
+  syncDesktopState: () => Promise<void>;
   updateSocialProfile: (patch: Partial<LocalSocialProfile>) => Promise<void>;
   addFriend: (friendCode: string) => Promise<void>;
   markNotificationRead: (notificationId: string) => void;
@@ -146,6 +152,8 @@ const mergeNotes = (preferred: string[], existing: string[]) => {
 };
 
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
+  const desktopSyncInFlightRef = useRef(false);
+  const lastDesktopSyncSignatureRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [permissions, setPermissions] = useState<PermissionState>(defaultPermissions);
@@ -166,6 +174,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     createLocalSocialProfileSeed(),
   );
   const [socialSyncStatus, setSocialSyncStatus] = useState<
+    'idle' | 'syncing' | 'ready' | 'error'
+  >('idle');
+  const [desktopSyncStatus, setDesktopSyncStatus] = useState<
     'idle' | 'syncing' | 'ready' | 'error'
   >('idle');
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
@@ -424,6 +435,18 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextValue));
   };
 
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    void persist({
+      hasCompletedOnboarding,
+      permissions,
+      joinedChallenges,
+    });
+  }, [hasCompletedOnboarding, joinedChallenges, permissions, ready]);
+
   const applyTodayMetrics = (updater: DailyMetrics | ((current: DailyMetrics) => DailyMetrics)) => {
     setCurrentTodayMetrics((current) => {
       const nextMetrics = typeof updater === 'function' ? updater(current) : updater;
@@ -640,6 +663,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await saveLocalSocialProfile(nextProfile);
   };
 
+  const buildDesktopSyncSignature = (payload: {
+    profileId?: string;
+    deviceProfile: DeviceProfile;
+    historySnapshots: HistorySnapshot[];
+    hasCompletedOnboarding: boolean;
+    permissions: PermissionState;
+    joinedChallenges: string[];
+  }) =>
+    JSON.stringify({
+      profileId: payload.profileId ?? null,
+      deviceProfilePatch: payload.deviceProfile.patch,
+      customizedKeys: payload.deviceProfile.customizedKeys,
+      historyDates: payload.historySnapshots
+        .slice(-30)
+        .map((snapshot) => `${snapshot.metrics.date}:${snapshot.savedAt}`),
+      hasCompletedOnboarding: payload.hasCompletedOnboarding,
+      permissions: payload.permissions,
+      joinedChallenges: payload.joinedChallenges,
+    });
+
   const syncSocialGraph = async () => {
     setSocialSyncStatus('syncing');
 
@@ -673,6 +716,103 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setSocialSyncStatus('ready');
     } catch {
       setSocialSyncStatus('error');
+    }
+  };
+
+  const syncDesktopState = async () => {
+    if (desktopSyncInFlightRef.current) {
+      return;
+    }
+
+    desktopSyncInFlightRef.current = true;
+    setDesktopSyncStatus('syncing');
+
+    try {
+      const ensuredProfile = socialProfile.id
+        ? socialProfile
+        : await ensureRemoteProfile(socialProfile);
+      const nextSocialProfile =
+        socialProfile.id === ensuredProfile.id ? socialProfile : ensuredProfile;
+
+      if (socialProfile.id !== ensuredProfile.id) {
+        setSocialProfile(ensuredProfile);
+        await saveLocalSocialProfile(ensuredProfile);
+      }
+
+      const remoteState = await pullDesktopSyncState(ensuredProfile);
+      const nextDeviceProfile = remoteState.deviceProfile ?? deviceProfile;
+      const nextPermissions = remoteState.permissions ?? permissions;
+      const nextHasCompletedOnboarding =
+        remoteState.hasCompletedOnboarding ?? hasCompletedOnboarding;
+      const nextJoinedChallenges = remoteState.joinedChallenges ?? joinedChallenges;
+      let nextHistorySnapshots = historySnapshots;
+
+      if (remoteState.deviceProfile) {
+        setDeviceProfile(nextDeviceProfile);
+        await saveDeviceProfile(nextDeviceProfile);
+      }
+
+      if (remoteState.permissions) {
+        setPermissions(nextPermissions);
+      }
+
+      if (remoteState.hasCompletedOnboarding !== undefined) {
+        setHasCompletedOnboarding(nextHasCompletedOnboarding);
+      }
+
+      if (remoteState.joinedChallenges) {
+        setJoinedChallenges(nextJoinedChallenges);
+      }
+
+      if (remoteState.historySnapshots && remoteState.historySnapshots.length > 0) {
+        const merged = [...historySnapshots];
+
+        for (const snapshot of remoteState.historySnapshots) {
+          const existingIndex = merged.findIndex(
+            (item) => item.metrics.date === snapshot.metrics.date,
+          );
+
+          if (existingIndex >= 0) {
+            merged[existingIndex] = snapshot;
+          } else {
+            merged.push(snapshot);
+          }
+        }
+
+        nextHistorySnapshots = upsertTodaySnapshot(
+          merged.sort((left, right) => left.metrics.date.localeCompare(right.metrics.date)),
+          currentTodayMetrics,
+        );
+        setHistorySnapshots(nextHistorySnapshots);
+        await saveHistorySnapshots(nextHistorySnapshots);
+      }
+
+      const nextSignature = buildDesktopSyncSignature({
+        profileId: nextSocialProfile.id,
+        deviceProfile: nextDeviceProfile,
+        historySnapshots: nextHistorySnapshots,
+        hasCompletedOnboarding: nextHasCompletedOnboarding,
+        permissions: nextPermissions,
+        joinedChallenges: nextJoinedChallenges,
+      });
+
+      if (nextSignature !== lastDesktopSyncSignatureRef.current) {
+        await pushDesktopSyncState({
+          profile: nextSocialProfile,
+          deviceProfile: nextDeviceProfile,
+          historySnapshots: nextHistorySnapshots,
+          hasCompletedOnboarding: nextHasCompletedOnboarding,
+          permissions: nextPermissions,
+          joinedChallenges: nextJoinedChallenges,
+        });
+        lastDesktopSyncSignatureRef.current = nextSignature;
+      }
+
+      setDesktopSyncStatus('ready');
+    } catch {
+      setDesktopSyncStatus('error');
+    } finally {
+      desktopSyncInFlightRef.current = false;
     }
   };
 
@@ -812,6 +952,36 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     weeklyAverageScore,
   ]);
 
+  useEffect(() => {
+    if (!ready || !hasCompletedOnboarding || socialSyncStatus !== 'ready') {
+      return;
+    }
+
+    const nextSignature = buildDesktopSyncSignature({
+      profileId: socialProfile.id,
+      deviceProfile,
+      historySnapshots,
+      hasCompletedOnboarding,
+      permissions,
+      joinedChallenges,
+    });
+
+    if (nextSignature === lastDesktopSyncSignatureRef.current) {
+      return;
+    }
+
+    void syncDesktopState();
+  }, [
+    socialProfile.id,
+    deviceProfile,
+    hasCompletedOnboarding,
+    historySnapshots,
+    joinedChallenges,
+    permissions,
+    ready,
+    socialSyncStatus,
+  ]);
+
   const value = useMemo<AppContextValue>(
     () => ({
       ready,
@@ -826,6 +996,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       deviceProfile,
       socialProfile,
       socialSyncStatus,
+      desktopSyncStatus,
       notificationFeed,
       notificationsEnabled,
       weeklyAverageScore,
@@ -851,6 +1022,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       updateTodayMetricPatch,
       updateDeviceProfile,
       syncSocialGraph,
+      syncDesktopState,
       updateSocialProfile,
       addFriend,
       markNotificationRead,
@@ -866,6 +1038,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       deviceProfile,
       socialProfile,
       socialSyncStatus,
+      desktopSyncStatus,
       notificationFeed,
       notificationsEnabled,
       permissions,

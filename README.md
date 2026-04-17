@@ -23,6 +23,7 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 - Platform-by-platform bridge status planner for iOS and Android native collector rollout
 - Tooltip info system with reference links
 - No external AI APIs
+- Supabase-backed social sync plus desktop-continuity sync for history, device profile, and app preferences
 
 ## Run
 
@@ -34,6 +35,19 @@ npm run ios
 npm run web
 ```
 
+## Release builds
+
+This repo now includes an `eas.json` with `development`, `preview`, and `production`
+profiles so iOS and Android release builds can be created through EAS once signing
+credentials are attached.
+
+Typical commands:
+
+```bash
+npx eas build --platform ios --profile production
+npx eas build --platform android --profile production
+```
+
 ## Architecture
 
 - `src/engine/` - score engine, thresholds, and outcome rules
@@ -41,6 +55,7 @@ npm run web
 - `src/screens/` - all app screens
 - `src/components/` - reusable UI building blocks
 - `src/context/` - onboarding, permissions, challenge state, derived app state
+- `src/services/desktopSyncService.ts` - Supabase sync for history, device profile, and app preferences
 - `modules/digital-carbon-usage-bridge/` - local Expo native module for app-usage bridge work
 
 ## Rule engine note

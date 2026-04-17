@@ -21,6 +21,8 @@ export const SettingsScreen = () => {
     liveSignalState,
     permissionDiagnostics,
     refreshPermissionDiagnostics,
+    desktopSyncStatus,
+    syncDesktopState,
   } = useAppContext();
   const coverageSummary = summarizeCollectorCoverage(collectorCapabilities);
   const liveCollectors = coverageSummary.byStatus.live.familyCount;
@@ -94,6 +96,19 @@ export const SettingsScreen = () => {
         <Text style={styles.body}>
           Dark mode is intentionally disabled so the score language stays airy, soft, and consistent across the full app.
         </Text>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Desktop Sync" subtitle="Cloud state for desktop and second-device continuity" />
+        <Text style={styles.body}>
+          Status: {desktopSyncStatus}
+        </Text>
+        <Text style={styles.body}>
+          History, device profile, onboarding state, and joined challenges can now sync through Supabase so the same profile can continue on desktop or another device.
+        </Text>
+        <Pressable onPress={() => void syncDesktopState()} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Sync now</Text>
+        </Pressable>
       </SurfaceCard>
 
       <SurfaceCard>
