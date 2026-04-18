@@ -4,9 +4,6 @@
     "slug": "digital-carbon-footprint-score",
     "version": "1.0.0",
     "scheme": "carbonscore",
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -51,6 +48,12 @@
           "defaultChannel": "carbon-coach"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "94f11e50-30e9-42c3-bb5f-01f0600a9038"
+      }
+    },
+    "owner": "sasmazt90"
   }
 }

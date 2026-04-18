@@ -4,6 +4,7 @@
 
 - Confirm Apple Developer team access
 - Attach signing credentials in EAS
+- Confirm production env vars exist in EAS
 - Run `npm run build:ios`
 - Verify notifications, location, motion, and usage fallbacks on a real device
 - Prepare App Store privacy answers and screenshots
@@ -12,6 +13,7 @@
 ## Android
 
 - Attach Play signing credentials in EAS
+- Confirm production env vars exist in EAS
 - Run `npm run build:android`
 - Verify usage access bridge, notifications, location, and motion on a real device
 - Prepare Play Console store listing and privacy form
