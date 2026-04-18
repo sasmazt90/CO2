@@ -7,6 +7,7 @@ export type RootStackParamList = {
   UsageAccess: undefined;
   AppClassifier: undefined;
   DeviceProfile: undefined;
+  ReleaseReadiness: undefined;
   Settings: undefined;
   Badges: undefined;
   SignalLab: undefined;

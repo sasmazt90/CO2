@@ -29,11 +29,18 @@ Calm x EcoFusion mobile app for iOS and Android, built with Expo + React Native.
 
 ```bash
 npm install
+copy .env.example .env
 npm run start
 npm run android
 npm run ios
 npm run web
 ```
+
+For production-safe local runs and EAS builds, provide:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- optional `EXPO_PUBLIC_RELEASE_CHANNEL`
 
 ## Release builds
 
@@ -47,6 +54,9 @@ Typical commands:
 npx eas build --platform ios --profile production
 npx eas build --platform android --profile production
 ```
+
+The in-app `Release Readiness` screen mirrors the same checklist from the product side,
+including env config, desktop sync round-trip, social sync, and metric coverage.
 
 ## Architecture
 

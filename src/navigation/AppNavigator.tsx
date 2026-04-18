@@ -27,6 +27,7 @@ import { MetricReadinessScreen } from '../screens/MetricReadinessScreen';
 import { MethodScreen } from '../screens/MethodScreen';
 import { OnboardingScreen } from '../screens/OnboardingScreen';
 import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
+import { ReleaseReadinessScreen } from '../screens/ReleaseReadinessScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { ShareCardScreen } from '../screens/ShareCardScreen';
 import { SignalLabScreen } from '../screens/SignalLabScreen';
@@ -121,6 +122,11 @@ export const AppNavigator = () => {
           <Stack.Screen name="UsageAccess" component={UsageAccessScreen} options={{ title: 'Usage Access' }} />
           <Stack.Screen name="AppClassifier" component={AppClassifierScreen} options={{ title: 'Usage Classifier' }} />
           <Stack.Screen name="DeviceProfile" component={DeviceProfileScreen} options={{ title: 'Device Profile' }} />
+          <Stack.Screen
+            name="ReleaseReadiness"
+            component={ReleaseReadinessScreen}
+            options={{ title: 'Release Readiness' }}
+          />
           <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
           <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />

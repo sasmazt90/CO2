@@ -89,6 +89,9 @@ export const SettingsScreen = () => {
             Open Device Profile ({deviceProfile.customizedKeys.length})
           </Text>
         </Pressable>
+        <Pressable onPress={() => navigation.navigate('ReleaseReadiness')} style={styles.secondaryButton}>
+          <Text style={styles.secondaryButtonText}>Open Release Readiness</Text>
+        </Pressable>
       </SurfaceCard>
 
       <SurfaceCard>

@@ -14,6 +14,7 @@ const menuItems = [
   { label: 'Usage Access', route: 'UsageAccess' },
   { label: 'Usage Classifier', route: 'AppClassifier' },
   { label: 'Device Profile', route: 'DeviceProfile' },
+  { label: 'Release Readiness', route: 'ReleaseReadiness' },
   { label: 'Share Card', route: 'ShareCard' },
   { label: 'Notification Center', route: 'NotificationCenter' },
   { label: 'Signal Lab', route: 'SignalLab' },
