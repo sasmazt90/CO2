@@ -17,6 +17,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.sasmazt90.digitalcarbonfootprintscore",
       "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
         "NSLocationWhenInUseUsageDescription": "Digital Carbon Footprint Score uses foreground location to estimate mobility patterns and encourage lower-carbon travel habits.",
         "NSMotionUsageDescription": "Digital Carbon Footprint Score uses motion activity to estimate steps and calmer movement patterns in your daily carbon score."
       }

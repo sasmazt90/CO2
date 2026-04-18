@@ -1,0 +1,10 @@
+.git
+.expo
+dist
+web-build
+node_modules
+docs
+supabase
+*.log
+*.tmp
+
