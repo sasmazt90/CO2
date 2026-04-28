@@ -5,6 +5,7 @@ import { TriggeredRule } from '../engine/types';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+import { formatKgCo2Compact } from '../utils/formatters';
 import { TooltipInfo } from './TooltipInfo';
 
 export const BreakdownRow = ({ entry }: { entry: TriggeredRule }) => (
@@ -13,8 +14,7 @@ export const BreakdownRow = ({ entry }: { entry: TriggeredRule }) => (
       <View style={styles.titleRow}>
         <Text style={styles.category}>{entry.category}</Text>
         <Text style={[styles.impact, entry.scoreImpact > 0 ? styles.positive : styles.negative]}>
-          {entry.scoreImpact > 0 ? '+' : ''}
-          {entry.scoreImpact}
+          {formatKgCo2Compact(entry.estimatedKgCo2)}
         </Text>
       </View>
       <Text style={styles.notification}>{entry.notification}</Text>
@@ -38,12 +38,15 @@ const styles = StyleSheet.create({
   titleRow: {
     alignItems: 'center',
     flexDirection: 'row',
+    gap: spacing.sm,
     justifyContent: 'space-between',
   },
   category: {
     color: colors.forestInk,
+    flex: 1,
     fontFamily: typography.bodyMedium,
     fontSize: 15,
+    flexShrink: 1,
   },
   impact: {
     fontFamily: typography.bodyMedium,

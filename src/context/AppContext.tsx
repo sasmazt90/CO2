@@ -12,6 +12,7 @@ import {
   BadgeDefinition,
   CarbonScoreBreakdown,
   ChallengeDefinition,
+  ChallengeInvite,
   CollectorCapability,
   DailyMetrics,
   FriendScore,
@@ -21,6 +22,7 @@ import {
   NotificationItem,
   PermissionDiagnostic,
   PermissionState,
+  SocialEvent,
 } from '../engine/types';
 import {
   buildBatteryJournalSummary,
@@ -61,9 +63,13 @@ import { buildNotificationFeed, syncLocalNotifications } from '../services/notif
 import { loadPermissionDiagnostics } from '../services/permissionDiagnostics';
 import { startScreenTimeJournalListeners } from '../services/screenTimeJournalService';
 import {
+  acceptChallengeInvite,
   addFriendByCode,
+  cancelChallengeInvite,
   ensureRemoteProfile,
   fetchSocialState,
+  inviteFriendToChallenge,
+  lookupProfileByCode,
   syncJoinedChallenges,
   syncWeeklySnapshot,
 } from '../services/socialSyncService';
@@ -73,6 +79,11 @@ import {
   LocalSocialProfile,
   saveLocalSocialProfile,
 } from '../services/socialProfileService';
+import {
+  applyTrackedMetrics,
+  createDefaultTrackingState,
+  MetricTrackingState,
+} from '../utils/metrics';
 
 interface AppContextValue {
   ready: boolean;
@@ -88,8 +99,10 @@ interface AppContextValue {
   socialProfile: LocalSocialProfile;
   socialSyncStatus: 'idle' | 'syncing' | 'ready' | 'error';
   desktopSyncStatus: 'idle' | 'syncing' | 'ready' | 'error';
+  trackedMetrics: MetricTrackingState;
   notificationFeed: NotificationItem[];
   notificationsEnabled: boolean;
+  notificationPreferenceEnabled: boolean;
   weeklyAverageScore: number;
   carbonPoints: number;
   streakDays: number;
@@ -99,10 +112,13 @@ interface AppContextValue {
   friends: FriendScore[];
   leaderboards: {
     friends: FriendScore[];
+    city: FriendScore[];
     regional: FriendScore[];
+    country: FriendScore[];
     global: FriendScore[];
   };
   jointChallenges: JointChallenge[];
+  challengeInvites: ChallengeInvite[];
   completeOnboarding: (permissions: PermissionState) => Promise<void>;
   toggleChallenge: (challengeId: string) => void;
   syncLiveSignals: () => Promise<void>;
@@ -115,8 +131,30 @@ interface AppContextValue {
   syncSocialGraph: () => Promise<void>;
   syncDesktopState: () => Promise<void>;
   updateSocialProfile: (patch: Partial<LocalSocialProfile>) => Promise<void>;
+  setMetricTracked: (metricKey: keyof MetricTrackingState, tracked: boolean) => void;
+  setGroupTracked: (
+    metricKeys: Array<keyof MetricTrackingState>,
+    tracked: boolean,
+  ) => void;
   addFriend: (friendCode: string) => Promise<void>;
+  inviteToChallenge: (
+    challengeId: string | undefined,
+    friendId: string,
+    options?: {
+      customTitle?: string;
+      customTargetLabel?: string;
+      customGroup?: ChallengeDefinition['group'];
+      duration?: 'weekly' | 'monthly';
+      challengeKey?: string;
+    },
+  ) => Promise<string | void>;
+  acceptInvite: (inviteId: string) => Promise<void>;
+  cancelInvite: (inviteId: string) => Promise<void>;
+  pairDesktopByCode: (friendCode: string) => Promise<void>;
+  setNotificationPreferenceEnabled: (enabled: boolean) => void;
   markNotificationRead: (notificationId: string) => void;
+  markAllNotificationsRead: () => void;
+  resetLocalData: () => Promise<void>;
 }
 
 const STORAGE_KEY = 'digital-carbon-footprint-score/app-state';
@@ -154,6 +192,7 @@ const mergeNotes = (preferred: string[], existing: string[]) => {
 export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const desktopSyncInFlightRef = useRef(false);
   const lastDesktopSyncSignatureRef = useRef<string | null>(null);
+  const lastNotificationSyncSignatureRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
   const [permissions, setPermissions] = useState<PermissionState>(defaultPermissions);
@@ -179,15 +218,26 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [desktopSyncStatus, setDesktopSyncStatus] = useState<
     'idle' | 'syncing' | 'ready' | 'error'
   >('idle');
+  const [trackedMetrics, setTrackedMetrics] = useState<MetricTrackingState>(
+    createDefaultTrackingState(),
+  );
   const [notificationFeed, setNotificationFeed] = useState<NotificationItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationPreferenceEnabled, setNotificationPreferenceEnabledState] =
+    useState(true);
   const [remoteFriends, setRemoteFriends] = useState<FriendScore[] | null>(null);
   const [remoteLeaderboards, setRemoteLeaderboards] = useState<{
     friends: FriendScore[];
+    city: FriendScore[];
     regional: FriendScore[];
+    country: FriendScore[];
     global: FriendScore[];
   } | null>(null);
   const [remoteJointChallenges, setRemoteJointChallenges] = useState<JointChallenge[] | null>(null);
+  const [remoteSocialEvents, setRemoteSocialEvents] = useState<SocialEvent[] | null>(null);
+  const [remoteChallengeInvites, setRemoteChallengeInvites] = useState<ChallengeInvite[] | null>(
+    null,
+  );
 
   const mergeLiveSignalState = (
     patch: Partial<LiveSignalState> & {
@@ -215,10 +265,21 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
             hasCompletedOnboarding: boolean;
             permissions: PermissionState;
             joinedChallenges: string[];
+            trackedMetrics?: Partial<MetricTrackingState>;
+            notificationFeed?: NotificationItem[];
+            notificationPreferenceEnabled?: boolean;
           };
           setHasCompletedOnboarding(parsed.hasCompletedOnboarding);
           setPermissions(parsed.permissions);
           setJoinedChallenges(parsed.joinedChallenges);
+          setTrackedMetrics({
+            ...createDefaultTrackingState(),
+            ...(parsed.trackedMetrics ?? {}),
+          });
+          setNotificationFeed(parsed.notificationFeed ?? []);
+          setNotificationPreferenceEnabledState(
+            parsed.notificationPreferenceEnabled ?? true,
+          );
         }
 
         const todaySeed = createTodayMetricSeed();
@@ -431,6 +492,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     hasCompletedOnboarding: boolean;
     permissions: PermissionState;
     joinedChallenges: string[];
+    trackedMetrics: MetricTrackingState;
+    notificationFeed: NotificationItem[];
+    notificationPreferenceEnabled: boolean;
   }) => {
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(nextValue));
   };
@@ -444,8 +508,19 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       hasCompletedOnboarding,
       permissions,
       joinedChallenges,
+      trackedMetrics,
+      notificationFeed,
+      notificationPreferenceEnabled,
     });
-  }, [hasCompletedOnboarding, joinedChallenges, permissions, ready]);
+  }, [
+    hasCompletedOnboarding,
+    joinedChallenges,
+    notificationFeed,
+    notificationPreferenceEnabled,
+    permissions,
+    ready,
+    trackedMetrics,
+  ]);
 
   const applyTodayMetrics = (updater: DailyMetrics | ((current: DailyMetrics) => DailyMetrics)) => {
     setCurrentTodayMetrics((current) => {
@@ -582,6 +657,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       hasCompletedOnboarding: true,
       permissions: nextPermissions,
       joinedChallenges,
+      trackedMetrics,
+      notificationFeed,
+      notificationPreferenceEnabled,
     });
 
     await refreshPermissionDiagnostics(true, nextPermissions);
@@ -589,7 +667,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     applyTodayMetrics((current) => ({ ...current, ...metricPatch }));
     mergeLiveSignalState(signalState);
     await syncAppUsageSignals();
-    if (nextPermissions.notifications) {
+    if (nextPermissions.notifications && notificationPreferenceEnabled) {
       setNotificationsEnabled(true);
     }
   };
@@ -605,6 +683,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       hasCompletedOnboarding,
       permissions,
       joinedChallenges: nextJoinedChallenges,
+      trackedMetrics,
+      notificationFeed,
+      notificationPreferenceEnabled,
     });
   };
 
@@ -713,6 +794,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setRemoteFriends(socialState.friends);
       setRemoteLeaderboards(socialState.leaderboards);
       setRemoteJointChallenges(socialState.jointChallenges);
+      setRemoteSocialEvents(socialState.socialEvents);
+      setRemoteChallengeInvites(socialState.challengeInvites);
       setSocialSyncStatus('ready');
     } catch {
       setSocialSyncStatus('error');
@@ -784,6 +867,12 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
           currentTodayMetrics,
         );
         setHistorySnapshots(nextHistorySnapshots);
+        const latestSnapshot = [...nextHistorySnapshots].sort((left, right) =>
+          right.metrics.date.localeCompare(left.metrics.date),
+        )[0];
+        if (latestSnapshot) {
+          setCurrentTodayMetrics(latestSnapshot.metrics);
+        }
         await saveHistorySnapshots(nextHistorySnapshots);
       }
 
@@ -833,6 +922,97 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     await syncSocialGraph();
   };
 
+  const pairDesktopByCode = async (friendCode: string) => {
+    const normalizedCode = friendCode.trim().toUpperCase();
+
+    if (!normalizedCode) {
+      throw new Error('Desktop sync code is required.');
+    }
+
+    const remoteProfile = await lookupProfileByCode(normalizedCode);
+
+    if (!remoteProfile?.id) {
+      throw new Error('Desktop profile not found.');
+    }
+
+    const remoteState = await pullDesktopSyncState(remoteProfile);
+
+    if (remoteState.deviceProfile) {
+      setDeviceProfile(remoteState.deviceProfile);
+      await saveDeviceProfile(remoteState.deviceProfile);
+    }
+
+    if (remoteState.permissions) {
+      setPermissions(remoteState.permissions);
+    }
+
+    if (remoteState.joinedChallenges) {
+      setJoinedChallenges(remoteState.joinedChallenges);
+    }
+
+    if (remoteState.historySnapshots) {
+      setHistorySnapshots(remoteState.historySnapshots);
+      const latestSnapshot = [...remoteState.historySnapshots].sort((left, right) =>
+        right.metrics.date.localeCompare(left.metrics.date),
+      )[0];
+      if (latestSnapshot) {
+        setCurrentTodayMetrics(latestSnapshot.metrics);
+      }
+      await saveHistorySnapshots(remoteState.historySnapshots);
+    }
+
+    if (remoteState.hasCompletedOnboarding !== undefined) {
+      setHasCompletedOnboarding(remoteState.hasCompletedOnboarding);
+    }
+
+    setDesktopSyncStatus('ready');
+  };
+
+  const inviteToChallenge = async (
+    challengeId: string | undefined,
+    friendId: string,
+    options?: {
+      customTitle?: string;
+      customTargetLabel?: string;
+      customGroup?: ChallengeDefinition['group'];
+      duration?: 'weekly' | 'monthly';
+      challengeKey?: string;
+    },
+  ) => {
+    const ensuredProfile = socialProfile.id
+      ? socialProfile
+      : await ensureRemoteProfile(socialProfile);
+    const actorProfileId = ensuredProfile.id;
+
+    if (!actorProfileId) {
+      throw new Error('Profile is not ready yet.');
+    }
+
+    const resolvedKey = await inviteFriendToChallenge({
+      actorProfileId,
+      challengeId,
+      friendId,
+      customTitle: options?.customTitle,
+      customTargetLabel: options?.customTargetLabel,
+      customGroup: options?.customGroup,
+      duration: options?.duration,
+      challengeKey: options?.challengeKey,
+    });
+
+    await syncSocialGraph();
+    return resolvedKey;
+  };
+
+  const acceptInvite = async (inviteId: string) => {
+    await acceptChallengeInvite(inviteId);
+    await syncSocialGraph();
+  };
+
+  const cancelInvite = async (inviteId: string) => {
+    await cancelChallengeInvite(inviteId);
+    await syncSocialGraph();
+  };
+
   const markNotificationRead = (notificationId: string) => {
     setNotificationFeed((current) =>
       current.map((item) =>
@@ -841,16 +1021,82 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
+  const setMetricTracked = (metricKey: keyof MetricTrackingState, tracked: boolean) => {
+    setTrackedMetrics((current) => ({
+      ...current,
+      [metricKey]: tracked,
+    }));
+  };
+
+  const setGroupTracked = (
+    metricKeys: Array<keyof MetricTrackingState>,
+    tracked: boolean,
+  ) => {
+    setTrackedMetrics((current) => {
+      const next = { ...current };
+
+      for (const key of metricKeys) {
+        next[key] = tracked;
+      }
+
+      return next;
+    });
+  };
+
+  const markAllNotificationsRead = () => {
+    setNotificationFeed((current) =>
+      current.map((item) => ({ ...item, read: true })),
+    );
+  };
+
+  const resetLocalData = async () => {
+    await AsyncStorage.multiRemove([
+      STORAGE_KEY,
+      'digital-carbon-footprint-score/history',
+      'digital-carbon-footprint-score/device-profile',
+      'digital-carbon-footprint-score/social-profile',
+    ]);
+
+    setHasCompletedOnboarding(false);
+    setPermissions(defaultPermissions);
+    setJoinedChallenges(['brightness-hero-week', 'eco-charger']);
+    setLiveSignalState({
+      syncedAt: null,
+      status: 'idle',
+      notes: ['Live signals have not been synced yet.'],
+    });
+    setHistorySnapshots([]);
+    setCurrentTodayMetrics(createTodayMetricSeed());
+    setPermissionDiagnostics([]);
+    setDeviceProfile(defaultDeviceProfile);
+    setSocialProfile(createLocalSocialProfileSeed());
+    setSocialSyncStatus('idle');
+    setDesktopSyncStatus('idle');
+    setTrackedMetrics(createDefaultTrackingState());
+    setNotificationFeed([]);
+    setNotificationsEnabled(false);
+    setNotificationPreferenceEnabledState(true);
+    setRemoteFriends(null);
+    setRemoteLeaderboards(null);
+    setRemoteJointChallenges(null);
+    setRemoteSocialEvents(null);
+    setRemoteChallengeInvites(null);
+    lastDesktopSyncSignatureRef.current = null;
+  };
+
   const todayMetrics = useMemo(
-    () => ({
-      ...currentTodayMetrics,
-      ...deriveMetricBaselines({
-        currentMetrics: currentTodayMetrics,
-        historySnapshots,
-      }),
-      ...deviceProfile.patch,
-    }),
-    [currentTodayMetrics, deviceProfile.patch, historySnapshots],
+    () =>
+      applyTrackedMetrics(
+        {
+          ...currentTodayMetrics,
+          ...deriveMetricBaselines({
+            currentMetrics: currentTodayMetrics,
+            historySnapshots,
+          }),
+        },
+        trackedMetrics,
+      ),
+    [currentTodayMetrics, historySnapshots, trackedMetrics],
   );
 
   const todayBreakdown = useMemo(
@@ -873,18 +1119,16 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     [historySnapshots],
   );
 
-  useEffect(() => {
-    const nextFeed = buildNotificationFeed(todayBreakdown, notificationFeed);
-    setNotificationFeed((current) => buildNotificationFeed(todayBreakdown, current));
-
-    if (permissions.notifications) {
-      void syncLocalNotifications(nextFeed).then((enabled) => {
-        setNotificationsEnabled(enabled);
-      });
-    } else {
-      setNotificationsEnabled(false);
-    }
-  }, [permissions.notifications, todayBreakdown]);
+  const currentLeaderboards = useMemo(
+    () => ({
+      friends: remoteLeaderboards?.friends ?? getLeaderboardByCohort('friends'),
+      city: remoteLeaderboards?.city ?? getLeaderboardByCohort('city'),
+      regional: remoteLeaderboards?.regional ?? getLeaderboardByCohort('regional'),
+      country: remoteLeaderboards?.country ?? getLeaderboardByCohort('country'),
+      global: remoteLeaderboards?.global ?? getLeaderboardByCohort('global'),
+    }),
+    [remoteLeaderboards],
+  );
 
   const weeklyAverageScore = useMemo(
     () => {
@@ -933,6 +1177,65 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   useEffect(() => {
+    const nextFeed = buildNotificationFeed({
+      availableChallenges: challenges,
+      breakdown: todayBreakdown,
+      existing: notificationFeed,
+      joinedChallenges,
+      leaderboards: {
+        regional: currentLeaderboards.regional,
+        global: currentLeaderboards.global,
+      },
+      socialEvents: remoteSocialEvents ?? [],
+      unlockedBadges: badges,
+      weeklyAverageScore,
+    });
+    if (JSON.stringify(nextFeed) !== JSON.stringify(notificationFeed)) {
+      setNotificationFeed(nextFeed);
+    }
+
+    if (permissions.notifications && notificationPreferenceEnabled) {
+      const notificationSignature = nextFeed
+        .filter((item) => !item.delivered && !item.read)
+        .map((item) => item.ruleId)
+        .sort()
+        .join('|');
+
+      if (!notificationSignature || notificationSignature === lastNotificationSyncSignatureRef.current) {
+        return;
+      }
+
+      lastNotificationSyncSignatureRef.current = notificationSignature;
+      void syncLocalNotifications(nextFeed).then(({ enabled, feed }) => {
+        setNotificationsEnabled(enabled);
+        if (JSON.stringify(feed) !== JSON.stringify(nextFeed)) {
+          setNotificationFeed(feed);
+        }
+      });
+    } else {
+      setNotificationsEnabled(false);
+    }
+  }, [
+    badges,
+    currentLeaderboards.global,
+    currentLeaderboards.regional,
+    joinedChallenges,
+    notificationFeed,
+    notificationPreferenceEnabled,
+    permissions.notifications,
+    remoteSocialEvents,
+    todayBreakdown,
+    weeklyAverageScore,
+  ]);
+
+  const setNotificationPreferenceEnabled = (enabled: boolean) => {
+    setNotificationPreferenceEnabledState(enabled);
+    if (!enabled) {
+      setNotificationsEnabled(false);
+    }
+  };
+
+  useEffect(() => {
     if (!ready || !hasCompletedOnboarding || socialSyncStatus === 'syncing') {
       return;
     }
@@ -944,7 +1247,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     joinedChallenges,
     ready,
     socialProfile.displayName,
+    socialProfile.city,
     socialProfile.friendCode,
+    socialProfile.country,
     socialProfile.region,
     socialSyncStatus,
     streakDays,
@@ -997,8 +1302,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       socialProfile,
       socialSyncStatus,
       desktopSyncStatus,
+      trackedMetrics,
       notificationFeed,
       notificationsEnabled,
+      notificationPreferenceEnabled,
       weeklyAverageScore,
       carbonPoints,
       streakDays,
@@ -1009,12 +1316,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       leaderboards: {
         friends:
           remoteLeaderboards?.friends ?? getLeaderboardByCohort('friends'),
+        city:
+          remoteLeaderboards?.city ?? getLeaderboardByCohort('city'),
         regional:
           remoteLeaderboards?.regional ?? getLeaderboardByCohort('regional'),
+        country:
+          remoteLeaderboards?.country ?? getLeaderboardByCohort('country'),
         global:
           remoteLeaderboards?.global ?? getLeaderboardByCohort('global'),
       },
       jointChallenges: remoteJointChallenges ?? jointChallenges,
+      challengeInvites: remoteChallengeInvites ?? [],
       completeOnboarding,
       toggleChallenge,
       syncLiveSignals,
@@ -1024,8 +1336,17 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       syncSocialGraph,
       syncDesktopState,
       updateSocialProfile,
+      setMetricTracked,
+      setGroupTracked,
       addFriend,
+      inviteToChallenge,
+      acceptInvite,
+      cancelInvite,
+      pairDesktopByCode,
+      setNotificationPreferenceEnabled,
       markNotificationRead,
+      markAllNotificationsRead,
+      resetLocalData,
     }),
     [
       badges,
@@ -1039,17 +1360,29 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       socialProfile,
       socialSyncStatus,
       desktopSyncStatus,
+      trackedMetrics,
       notificationFeed,
       notificationsEnabled,
+      notificationPreferenceEnabled,
+      inviteToChallenge,
+      markAllNotificationsRead,
+      resetLocalData,
+      setGroupTracked,
+      setMetricTracked,
       permissions,
       ready,
       remoteFriends,
+      remoteChallengeInvites,
       remoteJointChallenges,
       remoteLeaderboards,
       streakDays,
       todayBreakdown,
       todayMetrics,
       weeklyAverageScore,
+      acceptInvite,
+      cancelInvite,
+      pairDesktopByCode,
+      setNotificationPreferenceEnabled,
     ],
   );
 

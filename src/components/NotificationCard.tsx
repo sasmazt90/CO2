@@ -23,7 +23,14 @@ export const NotificationCard = ({
         <Text style={styles.source}>{item.source}</Text>
       </View>
       <View style={styles.meta}>
-        <View style={[styles.dot, item.kind === 'positive' ? styles.dotPositive : styles.dotImprovement]} />
+        <View
+          style={[
+            styles.dot,
+            item.kind === 'badge' || item.kind === 'leaderboard'
+              ? styles.dotPositive
+              : styles.dotImprovement,
+          ]}
+        />
         {!item.read ? (
           <Pressable onPress={onRead} style={styles.button}>
             <Text style={styles.buttonText}>Mark read</Text>
@@ -77,7 +84,7 @@ const styles = StyleSheet.create({
   meta: {
     alignItems: 'flex-end',
     gap: spacing.sm,
-    minWidth: 72,
+    minWidth: 84,
   },
   dot: {
     borderRadius: 999,

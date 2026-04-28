@@ -13,7 +13,7 @@ import { typography } from '../theme/typography';
 const onboardingCards = [
   {
     title: 'A gentle daily carbon coach',
-    body: 'Digital Carbon Footprint Score turns device behavior and lifestyle signals into one calm daily score with clear, supportive next steps.',
+    body: 'Digital Carbon Footprint Score turns device behavior and lifestyle signals into one calm daily footprint score with clear, supportive next steps.',
   },
   {
     title: 'Transparent and local-first',
@@ -73,13 +73,12 @@ export const OnboardingScreen = () => {
   );
 
   return (
-    <Screen>
+    <Screen includeTopInset>
       <LinearGradient colors={['rgba(255,255,255,0.7)', 'rgba(221,235,221,0.82)']} style={styles.hero}>
-        <BrandLogo size={60} />
+        <BrandLogo size={44} showWordmark />
         <View style={styles.heroCopy}>
-          <Text style={styles.heroTitle}>Digital Carbon Footprint Score</Text>
           <Text style={styles.heroBody}>
-            Daily carbon score, scientific transparency, and eco-positive coaching in one calm mobile experience.
+            Daily footprint scoring, scientific transparency, and eco-positive coaching in one calm mobile experience.
           </Text>
         </View>
       </LinearGradient>
@@ -161,11 +160,6 @@ const styles = StyleSheet.create({
   },
   heroCopy: {
     gap: spacing.xs,
-  },
-  heroTitle: {
-    color: colors.forestInk,
-    fontFamily: typography.title,
-    fontSize: 28,
   },
   heroBody: {
     color: colors.forestInk,

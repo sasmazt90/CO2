@@ -5,6 +5,7 @@ import { FriendScore } from '../engine/types';
 import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+import { toFootprintScore } from '../utils/formatters';
 import { SurfaceCard } from './SurfaceCard';
 
 export const FriendCard = ({
@@ -16,20 +17,20 @@ export const FriendCard = ({
 }) => (
   <SurfaceCard>
     <View style={styles.row}>
-      <View>
+      <View style={styles.copy}>
         <Text style={styles.rank}>#{index + 1}</Text>
         <Text style={styles.name}>{friend.name}</Text>
-        <Text style={styles.meta}>
-          {friend.region} - {friend.sharedBadge}
+        <Text numberOfLines={2} style={styles.meta}>
+          {friend.city}, {friend.country} • {friend.sharedBadge}
         </Text>
       </View>
       <View style={styles.scoreWrap}>
-        <Text style={styles.score}>{friend.weeklyScore}</Text>
+        <Text style={styles.score}>{toFootprintScore(friend.weeklyScore)}</Text>
         <Text style={styles.delta}>
           {friend.delta >= 0 ? '+' : ''}
           {friend.delta} this week
         </Text>
-        <Text style={styles.meta}>{friend.streak} day streak</Text>
+        <Text style={styles.metaRight}>Lower score wins • {friend.streak} day streak</Text>
       </View>
     </View>
   </SurfaceCard>
@@ -37,9 +38,13 @@ export const FriendCard = ({
 
 const styles = StyleSheet.create({
   row: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     flexDirection: 'row',
+    gap: spacing.md,
     justifyContent: 'space-between',
+  },
+  copy: {
+    flex: 1,
   },
   rank: {
     color: colors.deepTeal,
@@ -58,8 +63,16 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: spacing.xxs,
   },
+  metaRight: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 11,
+    marginTop: spacing.xxs,
+    textAlign: 'right',
+  },
   scoreWrap: {
     alignItems: 'flex-end',
+    minWidth: 92,
   },
   score: {
     color: colors.forestInk,

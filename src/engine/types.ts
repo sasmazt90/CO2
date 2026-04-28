@@ -97,6 +97,7 @@ export interface TriggeredRule {
   recommendation: string;
   source: string;
   scoreImpact: number;
+  estimatedKgCo2: number;
   summary: string;
   referenceId: string;
 }
@@ -232,7 +233,8 @@ export interface NotificationItem {
   createdAt: string;
   category: string;
   read: boolean;
-  kind: 'positive' | 'improvement';
+  delivered?: boolean;
+  kind: 'summary' | 'badge' | 'challenge' | 'social' | 'leaderboard';
 }
 
 export interface ChallengeDefinition {
@@ -251,18 +253,21 @@ export interface BadgeDefinition {
   subtitle: string;
   level: 'Bronze' | 'Silver' | 'Gold';
   icon: 'leaf' | 'sun' | 'bolt' | 'phone' | 'footsteps';
+  howToEarn: string;
   unlocked: (breakdown: CarbonScoreBreakdown) => boolean;
 }
 
 export interface FriendScore {
   id: string;
   name: string;
+  city: string;
   region: string;
+  country: string;
   weeklyScore: number;
   streak: number;
   sharedBadge: string;
   delta: number;
-  cohort: 'friends' | 'regional' | 'global';
+  cohort: 'friends' | 'city' | 'regional' | 'country' | 'global';
   jointChallengeIds?: string[];
 }
 
@@ -274,4 +279,30 @@ export interface JointChallenge {
   progress: number;
   targetLabel: string;
   sharedReward: string;
+}
+
+export interface SocialEvent {
+  id: string;
+  profileId: string;
+  actorProfileId?: string | null;
+  eventType: 'friend_added' | 'challenge_invited';
+  eventKey: string;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface ChallengeInvite {
+  id: string;
+  challengeKey: string;
+  challengeId?: string | null;
+  title: string;
+  targetLabel: string;
+  group: ScoreGroup | 'Habits';
+  duration: 'weekly' | 'monthly';
+  creatorProfileId: string;
+  creatorName: string;
+  inviteeProfileId: string;
+  inviteeName: string;
+  status: 'pending' | 'accepted' | 'cancelled';
+  createdAt: string;
 }

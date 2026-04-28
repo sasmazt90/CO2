@@ -5,6 +5,7 @@ import { BadgeDefinition } from '../engine/types';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+import { toFootprintScore } from '../utils/formatters';
 import { BadgeMedal } from './BadgeMedal';
 import { BrandLogo } from './BrandLogo';
 
@@ -22,18 +23,20 @@ export const SharePreviewCard = ({
   <View style={styles.card}>
     <View style={styles.header}>
       <BrandLogo size={42} />
-      <View>
-        <Text style={styles.title}>Digital Carbon Footprint Score</Text>
-        <Text style={styles.subtitle}>Weekly eco-positive snapshot</Text>
+      <View style={styles.headerCopy}>
+        <Text numberOfLines={2} style={styles.title}>
+          Digital Carbon Footprint Score
+        </Text>
+        <Text style={styles.subtitle}>Weekly footprint snapshot</Text>
       </View>
     </View>
     <View style={styles.heroRow}>
       <View>
         <Text style={styles.eyebrow}>This week</Text>
-        <Text style={styles.score}>{weeklyAverage}</Text>
+        <Text style={styles.score}>{toFootprintScore(weeklyAverage)}</Text>
       </View>
       <View style={styles.stats}>
-        <Text style={styles.stat}>Today {score}</Text>
+        <Text style={styles.stat}>Today {toFootprintScore(score)}/100</Text>
         <Text style={styles.stat}>{streak} day streak</Text>
       </View>
     </View>
@@ -58,10 +61,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
+  headerCopy: {
+    flex: 1,
+  },
   title: {
     color: colors.forestInk,
     fontFamily: typography.bodyMedium,
-    fontSize: 18,
+    fontSize: 15,
+    lineHeight: 20,
   },
   subtitle: {
     color: colors.warmGray,

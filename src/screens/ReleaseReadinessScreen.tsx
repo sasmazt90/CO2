@@ -115,8 +115,8 @@ export const ReleaseReadinessScreen = () => {
             : socialSyncStatus === 'error'
               ? 'Social sync is implemented but the last fetch or write failed.'
               : 'The backend is wired and waiting for a successful sync cycle in this install.',
-        actionLabel: 'Open Friends',
-        actionRoute: 'Friends',
+        actionLabel: 'Open Leaderboard',
+        actionRoute: 'Leaderboard',
       },
       {
         id: 'metric-coverage',
@@ -283,4 +283,3 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
-

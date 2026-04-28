@@ -1,24 +1,18 @@
 export type RootStackParamList = {
   MainTabs: undefined;
   Method: undefined;
-  DataSources: undefined;
-  MetricReadiness: undefined;
-  BridgeStatus: undefined;
-  UsageAccess: undefined;
-  AppClassifier: undefined;
-  DeviceProfile: undefined;
-  ReleaseReadiness: undefined;
+  References: undefined;
   Settings: undefined;
-  Badges: undefined;
-  SignalLab: undefined;
   NotificationCenter: undefined;
-  ShareCard: undefined;
+  MetricTracking: undefined;
+  Privacy: undefined;
+  Terms: undefined;
+  LegalNotice: undefined;
 };
 
 export type MainTabParamList = {
   Home: undefined;
   Insights: undefined;
-  History: undefined;
   Challenges: undefined;
-  Friends: undefined;
+  Leaderboard: undefined;
 };

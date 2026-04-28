@@ -29,7 +29,7 @@ export const ChallengeCard = ({
         <View style={[styles.fill, { width: `${Math.max(progress * 100, 6)}%` }]} />
       </View>
       <View style={styles.footer}>
-        <Text style={styles.points}>{challenge.points} CarbonPoints</Text>
+        <Text style={styles.points}>{challenge.points} reward points</Text>
         <Pressable onPress={onToggle} style={[styles.button, joined && styles.buttonActive]}>
           <Text style={[styles.buttonText, joined && styles.buttonTextActive]}>
             {joined ? 'Joined' : 'Join'}
@@ -43,6 +43,7 @@ export const ChallengeCard = ({
 const styles = StyleSheet.create({
   card: {
     gap: spacing.sm,
+    width: 288,
   },
   title: {
     color: colors.forestInk,

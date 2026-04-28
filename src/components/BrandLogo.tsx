@@ -1,7 +1,12 @@
 import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Ellipse, LinearGradient, Path, Stop } from 'react-native-svg';
 
-export const BrandLogo = ({ size = 42 }: { size?: number }) => {
+import { colors } from '../theme/colors';
+import { spacing } from '../theme/spacing';
+import { typography } from '../theme/typography';
+
+const BrandMark = ({ size = 42 }: { size?: number }) => {
   const strokeWidth = size * 0.12;
 
   return (
@@ -27,3 +32,50 @@ export const BrandLogo = ({ size = 42 }: { size?: number }) => {
     </Svg>
   );
 };
+
+export const BrandLogo = ({
+  size = 42,
+  showWordmark = false,
+}: {
+  size?: number;
+  showWordmark?: boolean;
+}) => {
+  if (!showWordmark) {
+    return <BrandMark size={size} />;
+  }
+
+  return (
+    <View style={styles.lockup}>
+      <BrandMark size={size} />
+      <View style={styles.wordmarkCopy}>
+        <Text numberOfLines={1} style={styles.wordmarkTitle}>
+          Digital Carbon
+        </Text>
+        <Text numberOfLines={1} style={styles.wordmarkSubtitle}>
+          Footprint Score
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  lockup: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  wordmarkCopy: {
+    gap: 1,
+  },
+  wordmarkTitle: {
+    color: colors.forestInk,
+    fontFamily: typography.title,
+    fontSize: 16,
+  },
+  wordmarkSubtitle: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
+  },
+});

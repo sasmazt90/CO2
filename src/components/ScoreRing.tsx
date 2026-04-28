@@ -9,14 +9,16 @@ import { typography } from '../theme/typography';
 
 export const ScoreRing = ({
   score,
+  size = 220,
+  showCenterContent = true,
   label,
   secondary,
-  size = 220,
 }: {
   score: number;
-  label: string;
-  secondary: string;
+  label?: string;
+  secondary?: string;
   size?: number;
+  showCenterContent?: boolean;
 }) => {
   const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
@@ -58,11 +60,13 @@ export const ScoreRing = ({
           origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
-      <View style={[styles.center, { width: size * 0.56 }]}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={styles.score}>{score}</Text>
-        <Text style={styles.secondary}>{secondary}</Text>
-      </View>
+      {showCenterContent ? (
+        <View style={[styles.center, { width: size * 0.56 }]}>
+          {label ? <Text style={styles.label}>{label}</Text> : null}
+          <Text style={styles.score}>{score}</Text>
+          {secondary ? <Text style={styles.secondary}>{secondary}</Text> : null}
+        </View>
+      ) : null}
     </LinearGradient>
   );
 };
