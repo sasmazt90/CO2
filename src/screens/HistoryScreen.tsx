@@ -9,7 +9,7 @@ import { useAppContext } from '../context/AppContext';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
-import { formatKgCo2, monthDayLabel } from '../utils/formatters';
+import { formatKgCo2, monthDayLabel, toFootprintScore } from '../utils/formatters';
 
 type RangeMode = 'weekly' | 'monthly';
 
@@ -21,7 +21,7 @@ export const HistoryScreen = () => {
     () =>
       breakdownHistory.slice(-7).map((item) => ({
         date: item.breakdown.date,
-        value: item.breakdown.score,
+        value: toFootprintScore(item.breakdown.score),
       })),
     [breakdownHistory],
   );
@@ -38,7 +38,7 @@ export const HistoryScreen = () => {
       buckets.push({
         date: slice[slice.length - 1].breakdown.date,
         value: Math.round(
-          slice.reduce((sum, item) => sum + item.breakdown.score, 0) / slice.length,
+          slice.reduce((sum, item) => sum + toFootprintScore(item.breakdown.score), 0) / slice.length,
         ),
       });
     }
@@ -79,7 +79,7 @@ export const HistoryScreen = () => {
           {delta >= 0 ? '+' : ''}
           {delta} points from the start of this {range}.
         </Text>
-        <Text style={styles.caption}>Current 7-day average: {weeklyAverageScore}</Text>
+        <Text style={styles.caption}>Current 7-day average: {toFootprintScore(weeklyAverageScore)}</Text>
       </SurfaceCard>
 
       <SurfaceCard>
@@ -99,7 +99,7 @@ export const HistoryScreen = () => {
                   <Text style={styles.journalMeta}>{entry.breakdown.primaryInsight}</Text>
                 </View>
                 <View style={styles.journalScoreWrap}>
-                  <Text style={styles.journalScore}>{entry.breakdown.score}</Text>
+                  <Text style={styles.journalScore}>{toFootprintScore(entry.breakdown.score)}</Text>
                   <Text style={styles.journalKg}>
                     {formatKgCo2(entry.breakdown.estimatedKgCo2)}
                   </Text>

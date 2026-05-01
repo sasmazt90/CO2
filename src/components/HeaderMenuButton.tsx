@@ -8,19 +8,13 @@ import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 const menuItems = [
-  { label: 'Data Sources', route: 'DataSources' },
-  { label: 'Metric Readiness', route: 'MetricReadiness' },
-  { label: 'Bridge Status', route: 'BridgeStatus' },
-  { label: 'Usage Access', route: 'UsageAccess' },
-  { label: 'Usage Classifier', route: 'AppClassifier' },
-  { label: 'Device Profile', route: 'DeviceProfile' },
-  { label: 'Release Readiness', route: 'ReleaseReadiness' },
-  { label: 'Share Card', route: 'ShareCard' },
-  { label: 'Notification Center', route: 'NotificationCenter' },
-  { label: 'Signal Lab', route: 'SignalLab' },
-  { label: 'Our Scientific Method', route: 'Method' },
-  { label: 'Badges', route: 'Badges' },
+  { label: 'How We Calculate', route: 'Method' },
+  { label: 'References', route: 'References' },
+  { label: 'Tracked Metrics', route: 'MetricTracking' },
   { label: 'Settings', route: 'Settings' },
+  { label: 'Privacy', route: 'Privacy' },
+  { label: 'Terms', route: 'Terms' },
+  { label: 'Legal Notice', route: 'LegalNotice' },
 ] as const;
 
 export const HeaderMenuButton = () => {
@@ -30,7 +24,7 @@ export const HeaderMenuButton = () => {
   return (
     <>
       <Pressable onPress={() => setOpen(true)} style={styles.trigger}>
-        <Ionicons name="menu-outline" size={24} color={colors.forestInk} />
+        <Ionicons name="menu-outline" size={28} color={colors.forestInk} />
       </Pressable>
       <Modal animationType="fade" transparent visible={open}>
         <Pressable onPress={() => setOpen(false)} style={styles.overlay}>
@@ -56,26 +50,35 @@ export const HeaderMenuButton = () => {
 
 const styles = StyleSheet.create({
   trigger: {
-    padding: 4,
+    marginLeft: spacing.xs,
+    minHeight: 44,
+    minWidth: 44,
+    padding: spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   overlay: {
     alignItems: 'flex-end',
     backgroundColor: 'rgba(78,97,86,0.08)',
     flex: 1,
     paddingHorizontal: spacing.md,
-    paddingTop: 72,
+    paddingTop: 64,
   },
   sheet: {
     backgroundColor: colors.softWhite,
     borderColor: 'rgba(160,167,162,0.15)',
-    borderRadius: radius.md,
+    borderRadius: 16,
     borderWidth: 1,
-    minWidth: 220,
+    minWidth: 200,
     overflow: 'hidden',
+    shadowColor: '#7EA395',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 18,
   },
   item: {
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
   },
   itemText: {
     color: colors.forestInk,

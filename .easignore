@@ -1,10 +1,12 @@
 .git
 .expo
+.vercel
 dist
 web-build
 node_modules
 docs
 supabase
+store-listing
+test-results
 *.log
 *.tmp
-

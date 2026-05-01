@@ -7,7 +7,9 @@ export interface LocalSocialProfile {
   id?: string;
   friendCode: string;
   displayName: string;
+  city: string;
   region: string;
+  country: string;
 }
 
 const randomChunk = () =>
@@ -16,7 +18,9 @@ const randomChunk = () =>
 export const createLocalSocialProfileSeed = (): LocalSocialProfile => ({
   friendCode: `CO2-${randomChunk()}${randomChunk()}`,
   displayName: 'Tolgar',
-  region: 'Berlin',
+  city: 'Munich',
+  region: 'Bavaria',
+  country: 'Germany',
 });
 
 export const loadLocalSocialProfile = async (): Promise<LocalSocialProfile> => {
@@ -31,6 +35,8 @@ export const loadLocalSocialProfile = async (): Promise<LocalSocialProfile> => {
     return {
       ...createLocalSocialProfileSeed(),
       ...parsed,
+      city: parsed.city ?? parsed.region ?? 'Munich',
+      country: parsed.country ?? 'Germany',
     };
   } catch {
     return createLocalSocialProfileSeed();

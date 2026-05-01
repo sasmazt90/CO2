@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { FriendScore, JointChallenge } from '../engine/types';
 import { colors } from '../theme/colors';
@@ -10,11 +10,15 @@ import { SurfaceCard } from './SurfaceCard';
 export const JointChallengeCard = ({
   challenge,
   members,
+  onInvite,
+  inviteDisabled = false,
 }: {
   challenge: JointChallenge;
   members: FriendScore[];
+  onInvite?: () => void;
+  inviteDisabled?: boolean;
 }) => (
-  <SurfaceCard>
+  <SurfaceCard style={styles.card}>
     <Text style={styles.title}>{challenge.title}</Text>
     <Text style={styles.body}>{challenge.targetLabel}</Text>
     <View style={styles.track}>
@@ -28,10 +32,20 @@ export const JointChallengeCard = ({
         </View>
       ))}
     </View>
+    {onInvite ? (
+      <Pressable disabled={inviteDisabled} onPress={onInvite} style={[styles.button, inviteDisabled && styles.buttonDisabled]}>
+        <Text style={[styles.buttonText, inviteDisabled && styles.buttonTextDisabled]}>
+          Invite
+        </Text>
+      </Pressable>
+    ) : null}
   </SurfaceCard>
 );
 
 const styles = StyleSheet.create({
+  card: {
+    width: 288,
+  },
   title: {
     color: colors.forestInk,
     fontFamily: typography.bodyMedium,
@@ -74,5 +88,24 @@ const styles = StyleSheet.create({
     color: colors.forestInk,
     fontFamily: typography.body,
     fontSize: 12,
+  },
+  button: {
+    alignSelf: 'flex-start',
+    borderColor: colors.softTeal,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  buttonDisabled: {
+    borderColor: 'rgba(160,167,162,0.24)',
+  },
+  buttonText: {
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+  },
+  buttonTextDisabled: {
+    color: colors.warmGray,
   },
 });

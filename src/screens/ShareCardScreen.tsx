@@ -11,6 +11,7 @@ import { useAppContext } from '../context/AppContext';
 import { colors } from '../theme/colors';
 import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
+import { toFootprintScore } from '../utils/formatters';
 
 export const ShareCardScreen = () => {
   const { badges, streakDays, todayBreakdown, weeklyAverageScore } = useAppContext();
@@ -20,7 +21,7 @@ export const ShareCardScreen = () => {
   const handleShare = async () => {
     setSharing(true);
     try {
-      const message = `My Digital Carbon Footprint Score is ${weeklyAverageScore} this week, with a ${streakDays}-day streak.`;
+      const message = `My weekly footprint score is ${toFootprintScore(weeklyAverageScore)}/100, with a ${streakDays}-day streak.`;
       const uri = await captureRef(cardRef, {
         format: 'png',
         quality: 1,

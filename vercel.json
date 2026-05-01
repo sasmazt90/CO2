@@ -1,0 +1,35 @@
+{
+  "framework": null,
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/web",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/sync",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/delete-account",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/data-deletion",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/legal",
+      "destination": "/index.html"
+    }
+  ]
+}

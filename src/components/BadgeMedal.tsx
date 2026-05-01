@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { BadgeDefinition } from '../engine/types';
 import { gradients, colors } from '../theme/colors';
@@ -22,14 +22,27 @@ const gradientByLevel = {
   Gold: gradients.gold,
 };
 
-export const BadgeMedal = ({ badge }: { badge: BadgeDefinition }) => (
-  <LinearGradient colors={gradientByLevel[badge.level]} style={styles.card}>
-    <View style={styles.iconWrap}>
-      <Ionicons name={iconByName[badge.icon]} size={22} color={colors.forestInk} />
-    </View>
-    <Text style={styles.title}>{badge.title}</Text>
-    <Text style={styles.subtitle}>{badge.subtitle}</Text>
-  </LinearGradient>
+export const BadgeMedal = ({
+  badge,
+  unlocked = true,
+  onPress,
+}: {
+  badge: BadgeDefinition;
+  unlocked?: boolean;
+  onPress?: () => void;
+}) => (
+  <Pressable disabled={!onPress} onPress={onPress}>
+    <LinearGradient
+      colors={unlocked ? gradientByLevel[badge.level] : ['#EEF2EF', '#E2E8E3']}
+      style={[styles.card, !unlocked && styles.cardLocked]}
+    >
+      <View style={[styles.iconWrap, !unlocked && styles.iconWrapLocked]}>
+        <Ionicons name={iconByName[badge.icon]} size={22} color={colors.forestInk} />
+      </View>
+      <Text style={styles.title}>{badge.title}</Text>
+      <Text style={styles.subtitle}>{badge.subtitle}</Text>
+    </LinearGradient>
+  </Pressable>
 );
 
 const styles = StyleSheet.create({
@@ -37,9 +50,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.md,
     gap: spacing.xs,
-    minWidth: 108,
+    minWidth: 132,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.md,
+  },
+  cardLocked: {
+    opacity: 0.58,
   },
   iconWrap: {
     alignItems: 'center',
@@ -48,6 +64,9 @@ const styles = StyleSheet.create({
     height: 42,
     justifyContent: 'center',
     width: 42,
+  },
+  iconWrapLocked: {
+    backgroundColor: 'rgba(248,250,247,0.92)',
   },
   title: {
     color: colors.forestInk,

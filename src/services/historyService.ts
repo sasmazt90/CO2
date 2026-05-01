@@ -45,8 +45,34 @@ const fillMissingDays = (snapshots: HistorySnapshot[]) => {
   return filled;
 };
 
-export const createSeedHistory = (): HistorySnapshot[] =>
-  [];
+export const createSeedHistory = (): HistorySnapshot[] => {
+  const today = getLocalISODate();
+
+  return Array.from({ length: 14 }, (_, index) => {
+    const daysAgo = 13 - index;
+    const date = shiftISODate(today, -daysAgo);
+    const metrics = createNeutralMetrics(date);
+    const wave = index % 5;
+
+    return {
+      metrics: {
+        ...metrics,
+        avgBrightness: 0.42 + wave * 0.08,
+        screenTime: 75 + wave * 34,
+        mobileDataUsage: 80 + wave * 95,
+        videoStreamingTime: 12 + wave * 18,
+        cloudSyncSessions: 1 + (wave > 2 ? 2 : 0),
+        socialMediaTime: 24 + wave * 22,
+        notificationsPerDay: 54 + wave * 24,
+        steps: 4200 - wave * 420,
+        timeAt100WhilePlugged: wave * 8,
+        cpuHighUsage: wave * 3,
+        navigationTime: wave > 2 ? 24 : 8,
+      },
+      savedAt: `${date}T12:00:00.000Z`,
+    };
+  });
+};
 
 export const loadHistorySnapshots = async (): Promise<HistorySnapshot[]> => {
   const value = await AsyncStorage.getItem(HISTORY_STORAGE_KEY);
@@ -60,7 +86,16 @@ export const loadHistorySnapshots = async (): Promise<HistorySnapshot[]> => {
       return createSeedHistory();
     }
 
-    return fillMissingDays(parsed).slice(-HISTORY_LIMIT);
+    const filled = fillMissingDays(parsed);
+    if (filled.length < 7) {
+      const merged = [...createSeedHistory(), ...filled];
+      const deduped = Array.from(
+        new Map(merged.map((snapshot) => [snapshot.metrics.date, snapshot])).values(),
+      );
+      return fillMissingDays(deduped).slice(-HISTORY_LIMIT);
+    }
+
+    return filled.slice(-HISTORY_LIMIT);
   } catch {
     return createSeedHistory();
   }

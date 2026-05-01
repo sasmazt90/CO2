@@ -1,242 +1,190 @@
-import { useNavigation } from '@react-navigation/native';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React from 'react';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { BadgeMedal } from '../components/BadgeMedal';
 import { FriendCard } from '../components/FriendCard';
-import { JointChallengeCard } from '../components/JointChallengeCard';
+import { InlineAdBanner } from '../components/InlineAdBanner';
 import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SharePreviewCard } from '../components/SharePreviewCard';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { useAppContext } from '../context/AppContext';
+import { createBadges } from '../data/friends';
 import { colors } from '../theme/colors';
-import { radius, spacing } from '../theme/spacing';
+import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
-type LeaderboardMode = 'friends' | 'regional' | 'global';
+const leaderboardTabs = [
+  { id: 'city', label: 'City' },
+  { id: 'region', label: 'Region' },
+  { id: 'country', label: 'Country' },
+  { id: 'world', label: 'World' },
+] as const;
 
 export const FriendsScreen = () => {
-  const navigation = useNavigation<any>();
-  const [mode, setMode] = useState<LeaderboardMode>('friends');
-  const [friendCode, setFriendCode] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [region, setRegion] = useState('');
-  const {
-    addFriend,
-    badges,
-    friends,
-    jointChallenges,
-    leaderboards,
-    socialProfile,
-    socialSyncStatus,
-    streakDays,
-    syncSocialGraph,
-    todayBreakdown,
-    updateSocialProfile,
-    weeklyAverageScore,
-  } = useAppContext();
+  const [activeTab, setActiveTab] = React.useState<(typeof leaderboardTabs)[number]['id']>('city');
+  const [selectedBadgeId, setSelectedBadgeId] = React.useState<string | null>(null);
+  const { badges, leaderboards, socialProfile, streakDays, todayBreakdown, weeklyAverageScore } =
+    useAppContext();
+  const allBadges = createBadges();
+  const unlockedBadgeIds = new Set(badges.map((badge) => badge.id));
+  const selectedBadge = allBadges.find((badge) => badge.id === selectedBadgeId);
 
-  React.useEffect(() => {
-    setDisplayName(socialProfile.displayName);
-    setRegion(socialProfile.region);
-  }, [socialProfile.displayName, socialProfile.region]);
-
-  const activeLeaderboard = leaderboards[mode];
-  const jointChallengeMembers = useMemo(
-    () =>
-      jointChallenges.map((challenge) => ({
-        challenge,
-        members: friends.filter((friend) => challenge.friendIds.includes(friend.id)),
-      })),
-    [friends, jointChallenges],
-  );
+  const leaderboardData =
+    activeTab === 'city'
+      ? leaderboards.city.filter((friend) => friend.city === socialProfile.city)
+      : activeTab === 'region'
+        ? leaderboards.regional
+        : activeTab === 'country'
+          ? leaderboards.country
+          : leaderboards.global;
 
   return (
     <Screen>
       <SurfaceCard>
-        <SectionTitle
-          title="Your circle"
-          subtitle="Real friend code, online sync, and calm social setup"
+        <SectionTitle title="Share card" subtitle="A clean weekly snapshot you can share with friends" />
+        <SharePreviewCard
+          badge={badges[0]}
+          score={todayBreakdown.score}
+          streak={streakDays}
+          weeklyAverage={weeklyAverageScore}
         />
-        <Text style={styles.meta}>
-          Your code: {socialProfile.friendCode} | Sync: {socialSyncStatus}
-        </Text>
-        <TextInput
-          value={displayName}
-          onChangeText={setDisplayName}
-          placeholder="Display name"
-          placeholderTextColor={colors.warmGray}
-          style={styles.input}
-        />
-        <TextInput
-          value={region}
-          onChangeText={setRegion}
-          placeholder="Region"
-          placeholderTextColor={colors.warmGray}
-          style={styles.input}
-        />
-        <TextInput
-          value={friendCode}
-          onChangeText={setFriendCode}
-          autoCapitalize="characters"
-          placeholder="Enter friend code"
-          placeholderTextColor={colors.warmGray}
-          style={styles.input}
-        />
-        <View style={styles.actionRow}>
-          <Pressable
-            onPress={() => void updateSocialProfile({ displayName, region })}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>Save profile</Text>
-          </Pressable>
-          <Pressable
-            onPress={() => {
-              void addFriend(friendCode.trim());
-              setFriendCode('');
-            }}
-            style={styles.primaryButton}
-          >
-            <Text style={styles.primaryButtonText}>Add friend</Text>
-          </Pressable>
-          <Pressable onPress={() => void syncSocialGraph()} style={styles.secondaryButton}>
-            <Text style={styles.secondaryButtonText}>Refresh cloud</Text>
-          </Pressable>
-        </View>
       </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle
-          title="Weekly leaderboard"
-          subtitle="Friends, regional, and global score views with calm comparisons"
-        />
-        <View style={styles.chips}>
-          {(['friends', 'regional', 'global'] as const).map((value) => (
-            <Pressable
-              key={value}
-              onPress={() => setMode(value)}
-              style={[styles.chip, mode === value && styles.chipActive]}
+        <SectionTitle title="Trophies" subtitle="Where your footprint score ranks against wider circles" />
+        <View style={styles.tabRow}>
+          {leaderboardTabs.map((tab) => (
+            <Text
+              key={tab.id}
+              onPress={() => setActiveTab(tab.id)}
+              style={[styles.tab, activeTab === tab.id && styles.tabActive]}
             >
-              <Text style={[styles.chipText, mode === value && styles.chipTextActive]}>
-                {value === 'friends'
-                  ? 'Friends'
-                  : value === 'regional'
-                    ? 'Regional'
-                    : 'Global'}
-              </Text>
-            </Pressable>
+              {tab.label}
+            </Text>
           ))}
         </View>
-        {activeLeaderboard.map((friend, index) => (
-          <FriendCard key={friend.id} friend={friend} index={index} />
-        ))}
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle title="Joint challenges" subtitle="Progress you can move together with friends" />
-        {jointChallengeMembers.map(({ challenge, members }) => (
-          <JointChallengeCard key={challenge.id} challenge={challenge} members={members} />
-        ))}
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle
-          title="Share card"
-          subtitle="Pastel social preview for achievements and weekly score"
-          action={
-            <Pressable onPress={() => navigation.navigate('ShareCard')}>
-              <Text style={styles.link}>Open</Text>
-            </Pressable>
-          }
-        />
-        <View style={styles.shareCard}>
-          <SharePreviewCard
-            badge={badges[0]}
-            score={todayBreakdown.score}
-            streak={streakDays}
-            weeklyAverage={weeklyAverageScore}
-          />
+        <View style={styles.leaderboardList}>
+          {leaderboardData.slice(0, 5).map((friend, index) => (
+            <FriendCard key={`${activeTab}-${friend.id}`} friend={friend} index={index} />
+          ))}
         </View>
       </SurfaceCard>
+
+      <InlineAdBanner placement="friendsBanner" />
+
+      <SurfaceCard>
+        <SectionTitle title="Badge cabinet" subtitle="Unlocked badges stay bright, locked badges stay muted" />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.badgeRow}>
+          {allBadges.map((badge) => (
+            <BadgeMedal
+              key={badge.id}
+              badge={badge}
+              unlocked={unlockedBadgeIds.has(badge.id)}
+              onPress={() => setSelectedBadgeId(badge.id)}
+            />
+          ))}
+        </ScrollView>
+        <Text style={styles.badgeNote}>
+          Tap any badge to see how to earn it.
+        </Text>
+      </SurfaceCard>
+
+      <Modal animationType="fade" transparent visible={selectedBadge !== undefined}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.badgeModal}>
+            <Pressable onPress={() => setSelectedBadgeId(null)} style={styles.modalClose}>
+              <Ionicons color={colors.forestInk} name="close-outline" size={22} />
+            </Pressable>
+            {selectedBadge ? (
+              <>
+                <BadgeMedal
+                  badge={selectedBadge}
+                  unlocked={unlockedBadgeIds.has(selectedBadge.id)}
+                />
+                <Text style={styles.modalTitle}>{selectedBadge.title}</Text>
+                <Text style={styles.modalMeta}>
+                  {selectedBadge.level} | {unlockedBadgeIds.has(selectedBadge.id) ? 'Unlocked' : 'Locked'}
+                </Text>
+                <Text style={styles.modalBody}>{selectedBadge.howToEarn}</Text>
+              </>
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 };
 
 const styles = StyleSheet.create({
-  actionRow: {
+  tabRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  chips: {
-    flexDirection: 'row',
-    gap: spacing.xs,
-  },
-  input: {
-    borderColor: 'rgba(160,167,162,0.18)',
-    borderRadius: radius.md,
+  tab: {
+    borderColor: colors.softTeal,
+    borderRadius: 999,
     borderWidth: 1,
-    color: colors.forestInk,
-    fontFamily: typography.body,
-    fontSize: 13,
+    color: colors.deepTeal,
+    fontFamily: typography.bodyMedium,
+    fontSize: 12,
+    overflow: 'hidden',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },
-  chip: {
-    borderColor: 'rgba(160,167,162,0.18)',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  chipActive: {
+  tabActive: {
     backgroundColor: colors.softTeal,
-    borderColor: colors.softTeal,
-  },
-  chipText: {
-    color: colors.deepTeal,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
-  chipTextActive: {
     color: colors.softWhite,
   },
-  link: {
+  leaderboardList: {
+    gap: spacing.sm,
+  },
+  badgeRow: {
+    gap: spacing.sm,
+    paddingRight: spacing.sm,
+  },
+  badgeNote: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  modalOverlay: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(26,31,28,0.2)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  badgeModal: {
+    alignItems: 'center',
+    backgroundColor: colors.softWhite,
+    borderRadius: 24,
+    gap: spacing.sm,
+    padding: spacing.lg,
+    width: '100%',
+  },
+  modalClose: {
+    alignSelf: 'flex-end',
+  },
+  modalTitle: {
+    color: colors.forestInk,
+    fontFamily: typography.title,
+    fontSize: 20,
+    textAlign: 'center',
+  },
+  modalMeta: {
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
     fontSize: 13,
   },
-  meta: {
-    color: colors.warmGray,
+  modalBody: {
+    color: colors.forestInk,
     fontFamily: typography.body,
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  primaryButton: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.softTeal,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  primaryButtonText: {
-    color: colors.softWhite,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
-  secondaryButton: {
-    alignSelf: 'flex-start',
-    borderColor: colors.softTeal,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-  },
-  secondaryButtonText: {
-    color: colors.deepTeal,
-    fontFamily: typography.bodyMedium,
-    fontSize: 12,
-  },
-  shareCard: {
-    gap: spacing.sm,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
 });

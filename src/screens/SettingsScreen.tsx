@@ -1,152 +1,226 @@
-import { useNavigation } from '@react-navigation/native';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
-import { PermissionDiagnosticCard } from '../components/PermissionDiagnosticCard';
+import { DesktopQrScannerModal } from '../components/DesktopQrScannerModal';
 import { Screen } from '../components/Screen';
 import { SectionTitle } from '../components/SectionTitle';
 import { SurfaceCard } from '../components/SurfaceCard';
 import { useAppContext } from '../context/AppContext';
-import { summarizeCollectorCoverage } from '../services/collectorCoverage';
+import {
+  getAdsState,
+  openAdsPrivacyOptions,
+  subscribeToAdsState,
+} from '../services/adService';
 import { colors } from '../theme/colors';
-import { spacing } from '../theme/spacing';
+import { radius, spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 
 export const SettingsScreen = () => {
-  const navigation = useNavigation<any>();
   const {
-    collectorCapabilities,
-    deviceProfile,
-    permissions,
-    liveSignalState,
-    permissionDiagnostics,
-    refreshPermissionDiagnostics,
+    addFriend,
     desktopSyncStatus,
+    notificationPreferenceEnabled,
+    notificationsEnabled,
+    pairDesktopByCode,
+    resetLocalData,
+    setNotificationPreferenceEnabled,
+    socialProfile,
+    socialSyncStatus,
     syncDesktopState,
+    syncSocialGraph,
+    updateSocialProfile,
   } = useAppContext();
-  const coverageSummary = summarizeCollectorCoverage(collectorCapabilities);
-  const liveCollectors = coverageSummary.byStatus.live.familyCount;
-  const blockedCollectors =
-    coverageSummary.byStatus.blocked.familyCount +
-    coverageSummary.byStatus.unavailable.familyCount;
-  const appUsageSourceLabel =
-    liveSignalState.appUsageSource === 'native-module'
-      ? 'Native usage bridge'
-      : liveSignalState.appUsageSource === 'app-session-journal'
-        ? 'App session journal'
-        : 'Seeded estimates';
+  const [displayName, setDisplayName] = React.useState(socialProfile.displayName);
+  const [friendCode, setFriendCode] = React.useState('');
+  const [desktopCode, setDesktopCode] = React.useState('');
+  const [scannerVisible, setScannerVisible] = React.useState(false);
+  const [adsState, setAdsState] = React.useState(() => getAdsState());
+
+  React.useEffect(() => {
+    setDisplayName(socialProfile.displayName);
+  }, [socialProfile.displayName]);
+
+  React.useEffect(() => subscribeToAdsState(setAdsState), []);
 
   return (
     <Screen>
+      <DesktopQrScannerModal
+        visible={scannerVisible}
+        onClose={() => setScannerVisible(false)}
+        onScanned={async (code) => {
+          try {
+            await pairDesktopByCode(code);
+            setDesktopCode('');
+            Alert.alert('Desktop paired', 'The QR code was scanned and this phone is now paired.');
+          } catch {
+            Alert.alert('Pairing failed', 'The QR code was valid, but the desktop profile could not be paired.');
+          }
+        }}
+      />
+
       <SurfaceCard>
-        <SectionTitle title="Privacy" subtitle="Calm, transparent, and ethical by default" />
-        <Text style={styles.body}>
-          This app only uses system-provided, user-approved data in the current experience. No hidden tracking, and no external AI APIs.
-        </Text>
+        <SectionTitle title="Invite code" subtitle="Share this code with friends so they can add you" />
+        <Text style={styles.body}>{socialProfile.friendCode}</Text>
       </SurfaceCard>
 
       <SurfaceCard>
         <SectionTitle
-          title="Permissions"
-          subtitle="Current onboarding choices and actual runtime access"
+          title="Notifications"
+          subtitle="Choose whether this app may show device-level notification banners"
         />
-        {Object.entries(permissions).map(([key, value]) => (
-          <View key={key} style={styles.row}>
-            <Text style={styles.label}>{key}</Text>
-            <Text style={styles.value}>{value ? 'Enabled' : 'Disabled'}</Text>
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleCopy}>
+            <Text style={styles.toggleTitle}>Allow notification banners</Text>
+            <Text style={styles.meta}>
+              {notificationsEnabled && notificationPreferenceEnabled
+                ? 'Enabled. We send one combined alert when multiple updates arrive together.'
+                : 'Disabled. You can still read updates inside the in-app notification center.'}
+            </Text>
           </View>
-        ))}
+          <Switch
+            onValueChange={setNotificationPreferenceEnabled}
+            thumbColor={notificationPreferenceEnabled ? colors.softWhite : '#F5F5F5'}
+            trackColor={{ false: 'rgba(160,167,162,0.28)', true: colors.softTeal }}
+            value={notificationPreferenceEnabled}
+          />
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle
+          title="Ad privacy choices"
+          subtitle="Users should be able to review ad consent after onboarding"
+        />
+        <Text style={styles.body}>
+          {adsState.personalizedAdsAllowed
+            ? 'Personalized ads are currently allowed on this device.'
+            : 'Personalized ads are currently unavailable on this device or for this region.'}
+        </Text>
+        <Text style={styles.meta}>
+          Consent status: {adsState.consentStatus}. Privacy options{' '}
+          {adsState.privacyOptionsRequired ? 'are available here.' : 'are not required right now.'}
+        </Text>
         <Pressable
-          onPress={() => void refreshPermissionDiagnostics()}
+          onPress={() =>
+            void openAdsPrivacyOptions()
+              .then(() => {
+                Alert.alert(
+                  'Ad privacy updated',
+                  'Your ad privacy choices were refreshed for this device.',
+                );
+              })
+              .catch(() => {
+                Alert.alert(
+                  'Privacy options unavailable',
+                  'No additional ad privacy form is available right now.',
+                );
+              })
+          }
           style={styles.secondaryButton}
         >
-          <Text style={styles.secondaryButtonText}>Refresh diagnostics</Text>
+          <Text style={styles.secondaryButtonText}>Review ad privacy choices</Text>
         </Pressable>
       </SurfaceCard>
 
-      {permissionDiagnostics.map((diagnostic) => (
-        <PermissionDiagnosticCard key={diagnostic.id} diagnostic={diagnostic} />
-      ))}
+      <SurfaceCard>
+        <SectionTitle title="Username" subtitle="This is the name shown in rankings and invites" />
+        <TextInput
+          onChangeText={setDisplayName}
+          placeholder="Your name"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+          value={displayName}
+        />
+        <Pressable onPress={() => void updateSocialProfile({ displayName })} style={styles.primaryButton}>
+          <Text style={styles.primaryButtonText}>Save username</Text>
+        </Pressable>
+      </SurfaceCard>
 
       <SurfaceCard>
-        <SectionTitle title="Collector readiness" subtitle="How the score is being fed right now" />
+        <SectionTitle title="Your circle" subtitle="Manage friends and your social profile" />
+        <Text style={styles.meta}>Social sync: {socialSyncStatus}</Text>
+        <View style={styles.readOnlyField}>
+          <Text style={styles.readOnlyLabel}>City</Text>
+          <Text style={styles.readOnlyValue}>{socialProfile.city}</Text>
+        </View>
+        <TextInput
+          autoCapitalize="characters"
+          onChangeText={setFriendCode}
+          placeholder="Enter friend code"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+          value={friendCode}
+        />
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={() => {
+              void addFriend(friendCode);
+              setFriendCode('');
+            }}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Add friend</Text>
+          </Pressable>
+          <Pressable onPress={() => void syncSocialGraph()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Refresh cloud</Text>
+          </Pressable>
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Desktop sync" subtitle="Enter the desktop code to pair this phone with your desktop app" />
+        <Text style={styles.meta}>Current status: {desktopSyncStatus}</Text>
         <Text style={styles.body}>
-          Live families: {liveCollectors} | Blocked families: {blockedCollectors} |
-          Live coverage: {coverageSummary.byStatus.live.outcomeCount}/
-          {coverageSummary.totalOutcomes} outcomes
+          Open `co2-score.online/web` on your desktop, then either type the code below or scan the QR.
+        </Text>
+        <TextInput
+          autoCapitalize="characters"
+          onChangeText={setDesktopCode}
+          placeholder="Desktop pairing code"
+          placeholderTextColor={colors.warmGray}
+          style={styles.input}
+          value={desktopCode}
+        />
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={() => {
+              void pairDesktopByCode(desktopCode);
+              setDesktopCode('');
+            }}
+            style={styles.primaryButton}
+          >
+            <Text style={styles.primaryButtonText}>Pair desktop</Text>
+          </Pressable>
+          <Pressable onPress={() => setScannerVisible(true)} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Scan QR</Text>
+          </Pressable>
+          <Pressable onPress={() => void syncDesktopState()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Sync now</Text>
+          </Pressable>
+        </View>
+      </SurfaceCard>
+
+      <SurfaceCard>
+        <SectionTitle title="Delete my data" subtitle="Clear local app history and restart onboarding" />
+        <Text style={styles.body}>
+          This removes locally stored score history, onboarding state, and profile data from this device.
         </Text>
         <Pressable
-          onPress={() => navigation.navigate('MetricReadiness')}
-          style={styles.secondaryButton}
+          onPress={() =>
+            Alert.alert('Delete local data?', 'This will reset the app on this device.', [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete',
+                style: 'destructive',
+                onPress: () => {
+                  void resetLocalData();
+                },
+              },
+            ])
+          }
+          style={styles.dangerButton}
         >
-          <Text style={styles.secondaryButtonText}>Open Metric Readiness</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('DataSources')} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Open Data Sources</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('DeviceProfile')} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>
-            Open Device Profile ({deviceProfile.customizedKeys.length})
-          </Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('ReleaseReadiness')} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Open Release Readiness</Text>
-        </Pressable>
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle title="Theme" subtitle="EcoCalm only" />
-        <Text style={styles.body}>
-          Dark mode is intentionally disabled so the score language stays airy, soft, and consistent across the full app.
-        </Text>
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle title="Desktop Sync" subtitle="Cloud state for desktop and second-device continuity" />
-        <Text style={styles.body}>
-          Status: {desktopSyncStatus}
-        </Text>
-        <Text style={styles.body}>
-          History, device profile, onboarding state, and joined challenges can now sync through Supabase so the same profile can continue on desktop or another device.
-        </Text>
-        <Pressable onPress={() => void syncDesktopState()} style={styles.secondaryButton}>
-          <Text style={styles.secondaryButtonText}>Sync now</Text>
-        </Pressable>
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle title="Signal sync" subtitle="Available on-device readings" />
-        <Text style={styles.body}>
-          Status: {liveSignalState.status}
-          {liveSignalState.deviceName ? ` - ${liveSignalState.deviceName}` : ''}
-        </Text>
-        <Text style={styles.body}>
-          App usage source: {appUsageSourceLabel}
-          {liveSignalState.appUsageSupportsCategories ? ' | category metrics are available' : ''}
-        </Text>
-        {liveSignalState.appSessionCount ? (
-          <Text style={styles.body}>
-            App session journal: {liveSignalState.appSessionMinutes ?? 0} minutes across{' '}
-            {liveSignalState.appSessionCount} sessions
-            {liveSignalState.appSessionDerived ? ' | screen-time fallback is active' : ''}
-          </Text>
-        ) : null}
-        {liveSignalState.batteryJournalSamples ? (
-          <Text style={styles.body}>
-            Battery journal: {liveSignalState.batteryJournalSamples} samples today
-            {liveSignalState.batteryJournalDerived
-              ? ' | charging and overnight drain metrics are journal-backed'
-              : ''}
-          </Text>
-        ) : null}
-        <Pressable
-          onPress={() => navigation.navigate('UsageAccess')}
-          style={styles.secondaryButton}
-        >
-          <Text style={styles.secondaryButtonText}>Open Usage Access</Text>
-        </Pressable>
-        <Pressable onPress={() => navigation.navigate('SignalLab')} style={styles.button}>
-          <Text style={styles.buttonText}>Open Signal Lab</Text>
+          <Text style={styles.dangerButtonText}>Delete my data</Text>
         </Pressable>
       </SurfaceCard>
     </Screen>
@@ -154,53 +228,101 @@ export const SettingsScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  actionRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
   body: {
     color: colors.forestInk,
     fontFamily: typography.body,
     fontSize: 13,
     lineHeight: 19,
   },
-  row: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-  },
-  label: {
+  input: {
+    borderColor: 'rgba(160,167,162,0.18)',
+    borderRadius: radius.md,
+    borderWidth: 1,
     color: colors.forestInk,
-    fontFamily: typography.bodyMedium,
-    fontSize: 13,
+    fontFamily: typography.body,
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
-  value: {
-    color: colors.deepTeal,
+  meta: {
+    color: colors.warmGray,
     fontFamily: typography.body,
     fontSize: 12,
   },
-  button: {
+  readOnlyField: {
+    borderColor: 'rgba(160,167,162,0.18)',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  readOnlyLabel: {
+    color: colors.warmGray,
+    fontFamily: typography.body,
+    fontSize: 11,
+  },
+  readOnlyValue: {
+    color: colors.forestInk,
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+    marginTop: spacing.xxs,
+  },
+  toggleRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+  },
+  toggleCopy: {
+    flex: 1,
+    gap: spacing.xxs,
+  },
+  toggleTitle: {
+    color: colors.forestInk,
+    fontFamily: typography.bodyMedium,
+    fontSize: 14,
+  },
+  primaryButton: {
     alignSelf: 'flex-start',
     backgroundColor: colors.softTeal,
-    borderRadius: 8,
-    marginTop: spacing.sm,
+    borderRadius: radius.md,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
   },
-  buttonText: {
+  primaryButtonText: {
     color: colors.softWhite,
     fontFamily: typography.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
   },
   secondaryButton: {
     alignSelf: 'flex-start',
     borderColor: colors.softTeal,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
-    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   secondaryButtonText: {
     color: colors.deepTeal,
     fontFamily: typography.bodyMedium,
-    fontSize: 12,
+    fontSize: 13,
+  },
+  dangerButton: {
+    alignSelf: 'flex-start',
+    borderColor: '#D28181',
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  dangerButtonText: {
+    color: '#A45858',
+    fontFamily: typography.bodyMedium,
+    fontSize: 13,
   },
 });

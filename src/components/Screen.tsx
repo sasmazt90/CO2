@@ -10,12 +10,14 @@ interface ScreenProps {
   children: React.ReactNode;
   scrollable?: boolean;
   contentContainerStyle?: StyleProp<ViewStyle>;
+  includeTopInset?: boolean;
 }
 
 export const Screen = ({
   children,
   scrollable = true,
   contentContainerStyle,
+  includeTopInset = false,
 }: ScreenProps) => {
   const content = scrollable ? (
     <ScrollView
@@ -30,7 +32,7 @@ export const Screen = ({
 
   return (
     <LinearGradient colors={gradients.appBackground} style={styles.gradient}>
-      <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <SafeAreaView edges={includeTopInset ? ['top'] : []} style={styles.safeArea}>
         {content}
       </SafeAreaView>
     </LinearGradient>
@@ -47,7 +49,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.xxl,
-    paddingTop: spacing.sm,
+    paddingTop: spacing.xs,
     gap: spacing.md,
   },
 });

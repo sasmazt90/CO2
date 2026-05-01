@@ -138,5 +138,5 @@ export const buildReferenceUsage = (): ReferenceUsageItem[] =>
 
 export const scoreFormulaLines = [
   `Score = clamp(${SCORE_BASELINE} + total rule impact, 0, 100)`,
-  `CO2e = max(0.04, 0.14 + negative impact * ${KG_PER_NEGATIVE_IMPACT} - positive impact * ${KG_PER_POSITIVE_IMPACT})`,
+  `CO₂e = max(0.04, 0.14 + negative impact * ${KG_PER_NEGATIVE_IMPACT} - positive impact * ${KG_PER_POSITIVE_IMPACT})`,
 ];

@@ -1,6 +1,5 @@
-import { useNavigation } from '@react-navigation/native';
 import React, { useMemo } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import { BreakdownRow } from '../components/BreakdownRow';
 import { Screen } from '../components/Screen';
@@ -11,9 +10,7 @@ import { colors } from '../theme/colors';
 import { spacing } from '../theme/spacing';
 import { typography } from '../theme/typography';
 import {
-  buildCollectorMethodSummary,
   buildMethodGroupSummaries,
-  buildReferenceUsage,
   buildScoreMethodExample,
   scoreFormulaLines,
   thresholdNotes,
@@ -22,7 +19,7 @@ import { formatKgCo2 } from '../utils/formatters';
 
 const groupDescriptions = [
   {
-    title: 'Why digital behavior affects CO2',
+    title: 'Why digital behavior affects footprint',
     body: 'Display power, radios, cloud traffic, charging patterns, and transport choices all shape the total energy used around a mobile device and its supporting infrastructure.',
   },
   {
@@ -32,8 +29,7 @@ const groupDescriptions = [
 ];
 
 export const MethodScreen = () => {
-  const navigation = useNavigation<any>();
-  const { collectorCapabilities, todayBreakdown } = useAppContext();
+  const { todayBreakdown } = useAppContext();
 
   const methodExample = useMemo(
     () => buildScoreMethodExample(todayBreakdown),
@@ -43,24 +39,11 @@ export const MethodScreen = () => {
     () => buildMethodGroupSummaries(todayBreakdown),
     [todayBreakdown],
   );
-  const collectorSummary = useMemo(
-    () => buildCollectorMethodSummary(collectorCapabilities),
-    [collectorCapabilities],
-  );
-  const referenceUsage = useMemo(() => buildReferenceUsage(), []);
 
   return (
     <Screen>
       <SurfaceCard>
-        <SectionTitle
-          title="Our Scientific Method"
-          subtitle="Formulas, metric families, collector coverage, and sources"
-          action={
-            <Pressable onPress={() => navigation.navigate('DataSources')}>
-              <Text style={styles.link}>Data Sources</Text>
-            </Pressable>
-          }
-        />
+        <SectionTitle title="How we calculate" subtitle="CO2e is the primary unit for trends, groups, focus areas, and metric details" />
         {groupDescriptions.map((item) => (
           <View key={item.title} style={styles.block}>
             <Text style={styles.blockTitle}>{item.title}</Text>
@@ -71,9 +54,14 @@ export const MethodScreen = () => {
 
       <SurfaceCard>
         <SectionTitle
-          title="Scoring Formula"
-          subtitle="The same deterministic math runs every day"
+          title="Calculation Formula"
+          subtitle="The same deterministic CO2e estimate runs for every selected day"
         />
+        <Text style={styles.body}>
+          The app estimates kg CO2e first, then derives the 0-100 score as a simple
+          normalized daily indicator. Detailed sections use CO2e because those values can
+          be compared and added across metric families.
+        </Text>
         {scoreFormulaLines.map((line) => (
           <Text key={line} style={styles.formula}>
             {line}
@@ -98,47 +86,16 @@ export const MethodScreen = () => {
       <SurfaceCard>
         <SectionTitle
           title="Today's Example"
-          subtitle={`${methodExample.triggeredRuleCount} triggered outcomes shaped today's score`}
+          subtitle={`${methodExample.triggeredRuleCount} triggered outcomes shaped today's footprint estimate`}
         />
         <Text style={styles.body}>
           Raw score = {methodExample.baseline} + {methodExample.totalImpact} ={' '}
-          {methodExample.rawScore}. After clamping, today's score is{' '}
+          {methodExample.rawScore}. After clamping, the resulting score is{' '}
           {methodExample.clampedScore}, with an estimated footprint of{' '}
           {formatKgCo2(methodExample.estimatedKgCo2)}.
         </Text>
         {todayBreakdown.entries.slice(0, 4).map((entry) => (
           <BreakdownRow key={entry.id} entry={entry} />
-        ))}
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle
-          title="Collector Transparency"
-          subtitle={`${collectorSummary.coverage.byStatus.live.outcomeCount}/${collectorSummary.coverage.totalOutcomes} outcomes are backed by live collectors today`}
-          action={
-            <Pressable onPress={() => navigation.navigate('BridgeStatus')}>
-              <Text style={styles.link}>Bridge Status</Text>
-            </Pressable>
-          }
-        />
-        <Text style={styles.body}>
-          Live families cover {collectorSummary.coverage.byStatus.live.categoryCount} of{' '}
-          {collectorSummary.coverage.totalCategories} categories. Native-required
-          families still hold {collectorSummary.coverage.byStatus['native-required'].outcomeCount}{' '}
-          outcomes, and blocked or unavailable access affects{' '}
-          {collectorSummary.coverage.byStatus.blocked.outcomeCount +
-            collectorSummary.coverage.byStatus.unavailable.outcomeCount}
-          .
-        </Text>
-        {collectorSummary.waitingFamilies.slice(0, 3).map((family) => (
-          <View key={family.id} style={styles.reference}>
-            <Text style={styles.blockTitle}>{family.title}</Text>
-            <Text style={styles.referenceMeta}>
-              {family.coverage.categoryCount} categories | {family.coverage.outcomeCount}{' '}
-              outcomes
-            </Text>
-            <Text style={styles.body}>{family.summary}</Text>
-          </View>
         ))}
       </SurfaceCard>
 
@@ -162,7 +119,7 @@ export const MethodScreen = () => {
               </Text>
             ) : (
               <Text style={styles.groupImpact}>
-                No triggered impact from this group in today's calculation.
+                No triggered impact from this group in the current calculation.
               </Text>
             )}
           </View>
@@ -179,28 +136,6 @@ export const MethodScreen = () => {
             <Text style={styles.rowLabel}>{item.label}</Text>
             <Text style={styles.rowValue}>{item.value}</Text>
           </View>
-        ))}
-      </SurfaceCard>
-
-      <SurfaceCard>
-        <SectionTitle
-          title="References"
-          subtitle="Tap any source to open the full paper or documentation"
-        />
-        {referenceUsage.map(({ reference, outcomeCount, categoryCount }) => (
-          <Pressable
-            key={reference.id}
-            onPress={() => void Linking.openURL(reference.url)}
-            style={styles.reference}
-          >
-            <Text style={styles.blockTitle}>{reference.title}</Text>
-            <Text style={styles.referenceMeta}>
-              {reference.organization} | {categoryCount} categories | {outcomeCount}{' '}
-              outcomes
-            </Text>
-            <Text style={styles.body}>{reference.citation}</Text>
-            <Text style={styles.note}>{reference.note}</Text>
-          </Pressable>
         ))}
       </SurfaceCard>
     </Screen>
@@ -256,11 +191,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
   },
-  link: {
-    color: colors.deepTeal,
-    fontFamily: typography.bodyMedium,
-    fontSize: 13,
-  },
   groupImpact: {
     color: colors.deepTeal,
     fontFamily: typography.body,
@@ -293,11 +223,5 @@ const styles = StyleSheet.create({
     color: colors.deepTeal,
     fontFamily: typography.body,
     fontSize: 12,
-  },
-  note: {
-    color: colors.warmGray,
-    fontFamily: typography.body,
-    fontSize: 12,
-    lineHeight: 17,
   },
 });

@@ -10,28 +10,23 @@ import React from 'react';
 
 import { BrandLogo } from '../components/BrandLogo';
 import { HeaderMenuButton } from '../components/HeaderMenuButton';
+import { HeaderNotificationButton } from '../components/HeaderNotificationButton';
 import { useAppContext } from '../context/AppContext';
 import { colors } from '../theme/colors';
 import { typography } from '../theme/typography';
-import { BadgesScreen } from '../screens/BadgesScreen';
-import { AppClassifierScreen } from '../screens/AppClassifierScreen';
 import { ChallengesScreen } from '../screens/ChallengesScreen';
-import { BridgeStatusScreen } from '../screens/BridgeStatusScreen';
-import { DataSourcesScreen } from '../screens/DataSourcesScreen';
-import { DeviceProfileScreen } from '../screens/DeviceProfileScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
-import { HistoryScreen } from '../screens/HistoryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
-import { MetricReadinessScreen } from '../screens/MetricReadinessScreen';
+import { LegalNoticeScreen } from '../screens/LegalNoticeScreen';
 import { MethodScreen } from '../screens/MethodScreen';
-import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { MetricTrackingScreen } from '../screens/MetricTrackingScreen';
 import { NotificationCenterScreen } from '../screens/NotificationCenterScreen';
-import { ReleaseReadinessScreen } from '../screens/ReleaseReadinessScreen';
+import { OnboardingScreen } from '../screens/OnboardingScreen';
+import { PrivacyScreen } from '../screens/PrivacyScreen';
+import { ReferencesScreen } from '../screens/ReferencesScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
-import { ShareCardScreen } from '../screens/ShareCardScreen';
-import { SignalLabScreen } from '../screens/SignalLabScreen';
-import { UsageAccessScreen } from '../screens/UsageAccessScreen';
+import { TermsScreen } from '../screens/TermsScreen';
 import { MainTabParamList, RootStackParamList } from './types';
 
 const navigationTheme: NavigationTheme = {
@@ -53,9 +48,8 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const tabIconByRoute: Record<keyof MainTabParamList, keyof typeof Ionicons.glyphMap> = {
   Home: 'leaf-outline',
   Insights: 'sparkles-outline',
-  History: 'stats-chart-outline',
-  Challenges: 'trophy-outline',
-  Friends: 'people-outline',
+  Challenges: 'people-outline',
+  Leaderboard: 'trophy-outline',
 };
 
 const MainTabs = () => (
@@ -78,20 +72,27 @@ const MainTabs = () => (
       tabBarIcon: ({ color, size }) => (
         <Ionicons name={tabIconByRoute[route.name as keyof MainTabParamList]} size={size} color={color} />
       ),
-      headerTitle: () => <BrandLogo size={34} />,
+      headerTitle: () => <BrandLogo size={28} showWordmark />,
       headerTitleAlign: 'left',
-      headerRight: () => <HeaderMenuButton />,
+      headerRight: () => (
+        <>
+          <HeaderNotificationButton />
+          <HeaderMenuButton />
+        </>
+      ),
       headerShadowVisible: false,
       headerStyle: {
         backgroundColor: colors.softWhite,
+      },
+      headerTitleContainerStyle: {
+        left: 16,
       },
     })}
   >
     <Tab.Screen name="Home" component={HomeScreen} />
     <Tab.Screen name="Insights" component={InsightsScreen} />
-    <Tab.Screen name="History" component={HistoryScreen} />
     <Tab.Screen name="Challenges" component={ChallengesScreen} />
-    <Tab.Screen name="Friends" component={FriendsScreen} />
+    <Tab.Screen name="Leaderboard" component={FriendsScreen} />
   </Tab.Navigator>
 );
 
@@ -112,31 +113,14 @@ export const AppNavigator = () => {
           }}
         >
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="DataSources" component={DataSourcesScreen} options={{ title: 'Data Sources' }} />
-          <Stack.Screen
-            name="MetricReadiness"
-            component={MetricReadinessScreen}
-            options={{ title: 'Metric Readiness' }}
-          />
-          <Stack.Screen name="BridgeStatus" component={BridgeStatusScreen} options={{ title: 'Bridge Status' }} />
-          <Stack.Screen name="UsageAccess" component={UsageAccessScreen} options={{ title: 'Usage Access' }} />
-          <Stack.Screen name="AppClassifier" component={AppClassifierScreen} options={{ title: 'Usage Classifier' }} />
-          <Stack.Screen name="DeviceProfile" component={DeviceProfileScreen} options={{ title: 'Device Profile' }} />
-          <Stack.Screen
-            name="ReleaseReadiness"
-            component={ReleaseReadinessScreen}
-            options={{ title: 'Release Readiness' }}
-          />
-          <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'Our Scientific Method' }} />
+          <Stack.Screen name="Method" component={MethodScreen} options={{ title: 'How We Calculate' }} />
+          <Stack.Screen name="References" component={ReferencesScreen} options={{ title: 'References' }} />
+          <Stack.Screen name="NotificationCenter" component={NotificationCenterScreen} options={{ title: 'Notifications' }} />
           <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-          <Stack.Screen name="Badges" component={BadgesScreen} options={{ title: 'Badges' }} />
-          <Stack.Screen name="SignalLab" component={SignalLabScreen} options={{ title: 'Signal Lab' }} />
-          <Stack.Screen
-            name="NotificationCenter"
-            component={NotificationCenterScreen}
-            options={{ title: 'Notification Center' }}
-          />
-          <Stack.Screen name="ShareCard" component={ShareCardScreen} options={{ title: 'Share Card' }} />
+          <Stack.Screen name="MetricTracking" component={MetricTrackingScreen} options={{ title: 'Tracked metrics' }} />
+          <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: 'Privacy' }} />
+          <Stack.Screen name="Terms" component={TermsScreen} options={{ title: 'Terms' }} />
+          <Stack.Screen name="LegalNotice" component={LegalNoticeScreen} options={{ title: 'Legal notice' }} />
         </Stack.Navigator>
       ) : (
         <OnboardingScreen />
